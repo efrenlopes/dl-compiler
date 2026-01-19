@@ -16,15 +16,26 @@ class Tag(Enum):
     LPAREN = auto()
     RPAREN = auto()
 
-    #Outros
-    EOF = auto()
-    UNK = auto()
-
     #Literais numéricos
     LIT_INT = auto()
     LIT_REAL = auto()
 
+    #ID e Palavras reservadas
     ID = auto()
+    PROGRAM = auto()
+    BEGIN = auto()
+    END = auto()
+    WRITE = auto()
+    IF = auto()
+    INT = auto()
+    REAL = auto()
+    BOOL = auto()
+    LIT_TRUE = auto()
+    LIT_FALSE = auto()
+
+    #Outros
+    EOF = auto()
+    UNK = auto()
         
     def __str__(self):
         return self.name
