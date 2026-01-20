@@ -1,5 +1,5 @@
 import sys
-from dl.lex.lexer import Lexer, Tag
+from dl.lex.lexer import Lexer
 from dl.syntax.parser import Parser
 
 if __name__ == '__main__':
