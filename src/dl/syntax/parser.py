@@ -34,7 +34,15 @@ class Parser:
         match(Tag.EOF)
 
     def __stmt(self):
-        pass
+        match self.lookahead.tag:
+            case Tag.INT | Tag.REAL | Tag.BOOL: 
+                return self.__decl()
+            case _: 
+                self.__error(self.lookahead.line, 'comando inválido!')        
+
+    def __decl(self):
+        self.__move()
+        self.__match(Tag.ID)
 
     # def __block(self):
     #     match = self.__match
@@ -45,7 +53,4 @@ class Parser:
     #     match(Tag.END)
 
 
-    # def __decl(self):
-    #     self.__move()
-    #     self.__match(Tag.ID)
 

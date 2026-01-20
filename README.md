@@ -8,9 +8,9 @@ PYTHONPATH=src python -m dl ./test/prog.dl
 ```bnf
 <PROGRAM>   ::= "programa" ID <STMT> "."
 <STMT>	    ::= <BLOCK> | <DECL> | <ASSIGN> | <WRITE> | <IF>
+<DECL>      ::= TYPE ID
 <BLOCK>     ::= "inicio" <STMTS> "fim"
 <STMTS>     ::= <STMT> ";" <STMTS> | ε
-<DECL>      ::= TYPE ID
 <ASSIGN>    ::= ID "=" <EXPR>
 <WRITE>     ::= "escreva" "(" <EXPR> ")"
 <IF>        ::= "se" "(" <EXPR> ")" <STMT>
