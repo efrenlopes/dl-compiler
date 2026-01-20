@@ -1,11 +1,1 @@
-programa area_circulo inicio
-  inteiro raio;
-  booleano positivo;
-  area = 5;
-  positivo = (raio > 1 | raio == 1);
-  se (positivo == verdade) inicio
-    real area;
-    area = 3.1415 * raio * raio;
-    escreva(area);
-  fim;
-fim.
+programa area_circulo.

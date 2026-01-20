@@ -1,5 +1,6 @@
 import sys
 from dl.lex.lexer import Lexer, Tag
+from dl.syntax.parser import Parser
 
 if __name__ == '__main__':
     #Entrada
@@ -11,7 +12,9 @@ if __name__ == '__main__':
 
     #Análise Léxica
     lexer = Lexer(file_input)
-    token = lexer.next_token()
-    while token.tag != Tag.EOF:
-        print(token)
-        token = lexer.next_token()
+
+    #Análise Sintática
+    parser = Parser(lexer)
+
+    #Fim
+    print('Compilação concluída com sucesso!')
