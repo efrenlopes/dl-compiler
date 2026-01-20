@@ -42,7 +42,9 @@ class Parser:
             case Tag.ID: 
                 return self.__assign()
             case Tag.IF: 
-                return self.__if()            
+                return self.__if()
+            case Tag.WRITE: 
+                return self.__write()   
             case _: 
                 self.__error(self.lookahead.line, 'comando inválido!')        
 
@@ -71,6 +73,13 @@ class Parser:
         self.__expr()
         match(Tag.RPAREN)
         self.__stmt()
+
+    def __write(self):
+        match = self.__match
+        match(Tag.WRITE)
+        match(Tag.LPAREN)
+        self.__expr()
+        match(Tag.RPAREN)
 
     def __expr(self):
         self.__equal()
