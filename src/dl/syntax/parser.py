@@ -1,5 +1,4 @@
 from dl.lex.tag import Tag
-from dl.lex.lexer import Token
 from dl.tree.ast import AST
 from dl.tree.nodes import (
     ProgramNode,
@@ -143,14 +142,18 @@ class Parser:
 
     def __factor(self):
         match = self.__match
+        expr = None
         match self.lookahead.tag:
             case Tag.LPAREN:
                 match(Tag.LPAREN)
-                self.__expr()
+                expr = self.__expr()
                 match(Tag.RPAREN)
             case Tag.LIT_INT | Tag.LIT_REAL | Tag.LIT_TRUE | Tag.LIT_FALSE:
-                self.__move()
+                lit_tok = self.__move()
+                expr = LiteralNode(lit_tok)
             case Tag.ID:
-                self.__move()
+                var_tok = self.__move()
+                expr = VarNode(var_tok)
             case _:
                 self.__error(self.lookahead.line, 'Expressão inválida!')
+        return expr
