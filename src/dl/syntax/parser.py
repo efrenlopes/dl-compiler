@@ -83,9 +83,11 @@ class Parser:
 
     def __assign(self):
         match = self.__match
-        match(Tag.ID)
+        var_tok = match(Tag.ID)
         match(Tag.ASSIGN)
-        self.__expr()
+        expr = self.__expr()
+        var = VarNode(var_tok)
+        return AssignNode(var_tok, var, expr)
 
     def __if(self):
         match = self.__match
