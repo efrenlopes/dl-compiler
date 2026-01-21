@@ -15,6 +15,9 @@ if __name__ == '__main__':
 
     #Análise Sintática
     parser = Parser(lexer)
+    ast = parser.ast
+    print("\n\nAST")
+    print(ast)
 
     #Fim
-    print('Compilação concluída com sucesso!')
+    print('\n\nCompilação concluída com sucesso!')

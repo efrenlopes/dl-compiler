@@ -1,10 +1,24 @@
 from dl.lex.tag import Tag
+from dl.lex.lexer import Token
+from dl.tree.ast import AST
+from dl.tree.nodes import (
+    ProgramNode,
+    BlockNode,
+    VarNode,
+    DeclNode,
+    AssignNode,
+    IfNode,
+    WriteNode,
+    BinaryNode,
+    LiteralNode,
+)
 
 class Parser:
     
     def __init__(self, lex):
         self.lexer = lex
         self.lookahead = None
+        self.ast = None
         self.__move()
         self.__parse()
 
@@ -23,15 +37,17 @@ class Parser:
         self.__error(self.lookahead.line, f'"{self.lookahead.lexeme}" inesperado')
 
     def __parse(self):
-        self.__program()
+        root = self.__program()
+        self.ast = AST(root)
 
     def __program(self):
         match = self.__match
-        match(Tag.PROGRAM)
-        match(Tag.ID)
-        self.__stmt()
+        prog_tok = match(Tag.PROGRAM)
+        prog_name_tok = match(Tag.ID)
+        stmt = self.__stmt()
         match(Tag.DOT)
         match(Tag.EOF)
+        return ProgramNode(prog_tok, prog_name_tok.lexeme, stmt)
 
     def __stmt(self):
         match self.lookahead.tag:
