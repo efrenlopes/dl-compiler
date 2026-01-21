@@ -70,11 +70,14 @@ class Parser:
 
     def __block(self):
         match = self.__match
-        match(Tag.BEGIN)
+        begin_tok = match(Tag.BEGIN)
+        block = BlockNode(begin_tok)
         while self.lookahead.tag != Tag.END:
-            self.__stmt()
+            stmt = self.__stmt()
+            block.add_stmt(stmt)
             match(Tag.SEMI)
         match(Tag.END)
+        return block
 
     def __assign(self):
         match = self.__match
