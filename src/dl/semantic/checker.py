@@ -35,7 +35,14 @@ class Checker(Visitor):
 
 
     def visit_decl_node(self, node: DeclNode):
-        pass
+        var_name = node.var.name
+        if self.__env_top.get_local(var_name) is None:
+            node.var.type = Type.tag_to_type(node.token.tag)
+            node.var.scope = self.__env_top.number
+            self.__env_top.put(var_name, SymbolInfo(node.var.type, node.var.scope, node.line))
+        else:
+            self.__error(node.line, f'"{var_name}" já declarada!')
+            
 
     def visit_assign_node(self, node: AssignNode):
         pass
