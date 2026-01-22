@@ -113,8 +113,24 @@ class Checker(Visitor):
 
 
     def visit_literal_node(self, node: LiteralNode):
-        pass
-            
+        node.type = Type.tag_to_type(node.token.tag)
+        match node.type:
+            case Type.BOOL:
+                node.value = (node.token.tag == Tag.LIT_TRUE)
+            case Type.INT:
+                value = int(node.raw_value)
+                if Type.MIN_INT <= value <= Type.MAX_INT:
+                    node.value = value
+                else:
+                    self.__error(node.line, f'O valor {value} está fora da faixa de valores dos inteiros')
+            case Type.REAL:
+                value = float(node.raw_value)
+                if Type.MIN_REAL <= value <= Type.MAX_REAL:
+                    node.value = value
+                else:
+                    self.__error(node.line, f'O valor {value} está fora da faixa de valores dos reais')            
+
+
     def visit_binary_node(self, node: BinaryNode):
         pass        
     
