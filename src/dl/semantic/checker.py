@@ -99,9 +99,19 @@ class Checker(Visitor):
     def visit_write_node(self, node: WriteNode):
         pass
     
+    
     def visit_var_node(self, node: VarNode):
-        pass
-                
+        info = self.__env_top.get(node.name)
+        if not info:
+            self.__error(node.line, f'{node.name} não declarada!')
+        else:
+            node.type = info.type
+            node.scope = info.scope
+            info.used = True
+            if not info.initialized:
+                    self.__error(node.line, f'{node.name} não inicializada!')    
+
+
     def visit_literal_node(self, node: LiteralNode):
         pass
             
