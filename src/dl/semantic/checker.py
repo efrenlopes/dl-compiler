@@ -85,10 +85,14 @@ class Checker(Visitor):
 
 
     def visit_if_node(self, node: IfNode):
-        pass        
+        node.expr.accept(self)
+        if not node.expr.type.is_boolean:
+            self.__error(node.line, 'Esperada uma expressão lógica')
+        node.stmt.accept(self)
         
+
     def visit_write_node(self, node: WriteNode):
-        pass
+        node.expr.accept(self)
     
     
     def visit_var_node(self, node: VarNode):
@@ -151,7 +155,6 @@ class Checker(Visitor):
             node.expr1 = Checker.widening(node.expr1, common_type)
             node.expr2 = Checker.widening(node.expr2, common_type)
     
-
 
 
     def visit_convert_node(self, node: ConvertNode):
