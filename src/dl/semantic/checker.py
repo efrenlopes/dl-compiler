@@ -68,21 +68,12 @@ class Checker(Visitor):
         #expr
         node.expr.accept(self)
         #Erro
-        if not Checker.is_assign_types_compatible(node.var.type, node.expr.type):
+        if node.var.type != Type.common_type(node.var.type, node.expr.type):
             self.__error(node.line, 'Tipo da variável incompatível com o tipo da expressão')
         else:            
             #widen
             node.expr = Checker.widening(node.expr, node.var.type)
             info.initialized = True
-
-    @staticmethod
-    def is_assign_types_compatible(var_type: Type, expr_type: Type):
-        if not var_type or not expr_type:
-            return False
-        if var_type == expr_type:
-            return True
-        return (var_type.is_numeric and expr_type.is_numeric and 
-                var_type.rank > expr_type.rank)
 
     @staticmethod
     def widening(expr: ExprNode, type: Type):
