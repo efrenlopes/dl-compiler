@@ -6,11 +6,13 @@ class AST:
         self.root = root
         
     def __str__(self):
+        self.str_tree = ['.\n']
         return self.__str_ast(self.root)
 
-    def __str_ast(self, node, ident: str = ''):
-        strList = [str(node)]
-        for n in node or []:
-            strList.append(f'\n{ident}\\--> ')
-            strList.append(self.__str_ast(n, f'{ident}     '))
-        return ''.join(strList)
+    def __str_ast(self, node, prefix:str='', is_last=True):
+        connector = '└───' if is_last else '├───'
+        self.str_tree.append(f'{prefix}{connector}{str(node)}\n')
+        new_prefix = f'{prefix}{"    " if is_last else "│   "}'
+        for i, n in enumerate(node) or []:
+            self.__str_ast(n, new_prefix, i==len(node)-1)
+        return ''.join(self.str_tree)

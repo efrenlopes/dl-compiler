@@ -17,11 +17,16 @@ class Node(ABC):
         pass
     
     def __iter__(self):
-        children = []
-        for _, var in vars(self).items():
-            if isinstance(var, Node):
-                children.append(var)
-        return iter(children)
+        for attr in vars(self).values():
+            if isinstance(attr, Node):
+                yield attr
+            elif isinstance(attr, list):
+                for item in attr:
+                    if isinstance(item, Node):
+                        yield item
+
+    def __len__(self):
+        return sum(1 for _ in self)
 
     def __repr__(self):
         return f'<{self.__class__.__name__}:{str(self)}>'
@@ -119,7 +124,7 @@ class StmtNode(Node):
         super().__init__(token)
         
     def __str__(self):
-        return self.__class__.__name__
+        return f'[{self.__class__.__name__}]'
 
     def __repr__(self):
         return f'<{str(self)}>'
@@ -148,9 +153,6 @@ class BlockNode(StmtNode):
 
     def accept(self, visitor: Visitor):
         return visitor.visit_block_node(self)
-
-    def __iter__(self):
-        return iter(self.stmts)
 
 
 
