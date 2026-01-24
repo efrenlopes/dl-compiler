@@ -2,6 +2,7 @@ import sys
 from dl.lex.lexer import Lexer
 from dl.syntax.parser import Parser
 from dl.semantic.checker import Checker
+from dl.inter.ic import IC
 
 if __name__ == '__main__':
     #Entrada
@@ -24,6 +25,15 @@ if __name__ == '__main__':
     checker = Checker(ast)
     print('\nAST com anotações semânticas')
     print(ast, '\n')
+    if checker.has_semantic_error:
+        exit()
+
+    #Geração de Código Intermediário
+    ic = IC(ast)
+    print("\nTAC")
+    print(ic, '\n')
+    #print('\nTAC Interpretation Output')
+    #ic.interpret()
 
     #Fim
     print('\nCompilação concluída com sucesso!')

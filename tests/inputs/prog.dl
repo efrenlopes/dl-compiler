@@ -1,7 +1,7 @@
 programa area_circulo inicio
   inteiro raio;
   booleano positivo;
-  raio = (4 + 3) * 2;
+  raio = 5;
   positivo = (raio > 1 | raio == 1);
   se (positivo == verdade) inicio
     real area;
