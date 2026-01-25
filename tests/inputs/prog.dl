@@ -4,8 +4,8 @@ programa area_circulo inicio
   raio = 5;
   positivo = (raio > 1 | raio == 1);
   se (positivo == verdade) inicio
-    real area;
-    area = 3.1415 * raio * raio;
+    inteiro area;
+    area = 3 * raio * raio;
     escreva(area);
   fim;
 fim.

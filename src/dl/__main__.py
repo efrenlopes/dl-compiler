@@ -1,8 +1,10 @@
-import sys
 from dl.lex.lexer import Lexer
 from dl.syntax.parser import Parser
 from dl.semantic.checker import Checker
 from dl.inter.ic import IC
+from dl.codegen.x64_codegen import X64CodeGenerator
+import sys
+import subprocess
 
 if __name__ == '__main__':
     #Entrada
@@ -34,6 +36,15 @@ if __name__ == '__main__':
     print(ic, '\n')
     print('\nInterpretação do Código Intermediário')
     ic.interpret()
+
+    #Geração de código x64
+    code = X64CodeGenerator(ic).code
+    file = open('out/prog.s', 'w')
+    file.write('\n'.join(code))
+    file.close()
+    print('\n\nSaída do programa alvo gerado')
+    subprocess.run(['gcc', 'out/prog.s', '-o', 'out/prog'], check=True)
+    subprocess.run(['./out/prog'], check=True)
 
     #Fim
     print('\nCompilação concluída com sucesso!')
