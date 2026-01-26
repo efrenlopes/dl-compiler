@@ -3,7 +3,7 @@ from dl.semantic.env import Env, SymbolInfo
 from dl.semantic.type import Type
 from dl.tree.ast import AST
 from dl.tree.nodes import Visitor, ProgramNode, BlockNode, DeclNode, AssignNode, IfNode, WriteNode, VarNode, LiteralNode, BinaryNode, ConvertNode, ExprNode
-
+import colorama
 
 class Checker(Visitor):
     
@@ -15,10 +15,16 @@ class Checker(Visitor):
 
     def __error(self, line: int, msg: str):
         self.had_errors = True
+        colorama.init()
+        print(colorama.Fore.RED, end='')
         print(f'Erro semântico na linha {line}: {msg}')
+        print(colorama.Style.RESET_ALL, end='')
 
     def __warning(self, line: int, msg: str):
+        colorama.init()
+        print(colorama.Fore.YELLOW, end='')
         print(f'Aviso na linha {line}: {msg}') 
+        print(colorama.Style.RESET_ALL, end='')
         
         
     def visit_program_node(self, node: ProgramNode):
