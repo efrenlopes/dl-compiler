@@ -20,12 +20,12 @@ class Instr:
             case Operator.LABEL: 
                 return f'{result}:'
             case Operator.IF | Operator.IFFALSE: 
-                return f'{op} {arg1} goto {result}'
+                return f'{op} {arg1} {Operator.GOTO} {result}'
             case Operator.GOTO: 
                 return f'{op} {result}'
             case Operator.CONVERT: 
-                return f'{result} = {op} {arg1}'
+                return f'{result} {Operator.MOVE} {op} {arg1}'
             case Operator.PRINT: 
                 return f'{op} {arg1}'
             case _: 
-                return f'{result} = {arg1} {op} {arg2}'
+                return f'{result} {Operator.MOVE} {arg1} {op} {arg2}'
