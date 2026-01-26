@@ -1,4 +1,5 @@
 from dl.lex.tag import Tag
+from dl.lex.token import Token
 from dl.tree.ast import AST
 from dl.tree.nodes import (
     ProgramNode,
@@ -32,10 +33,34 @@ class Parser:
         self.lookahead = self.lexer.next_token()
         return save
     
+    @staticmethod
+    def tag_to_msg(tag: Tag):
+        if isinstance(tag.value, str):
+            return tag.value
+        else:
+            match tag:
+                case Tag.ID:
+                    return 'nome'
+                case Tag.LIT_INT:
+                    return 'literal inteiro'
+                case Tag.LIT_REAL:
+                    return 'literal real'
+                case Tag.UNK:
+                    return 'desconhecido'
+                case Tag.EOF:
+                    return 'fim de arquivo'
+    
+    @staticmethod
+    def token_to_msg(token: Token):
+        if token.lexeme:
+            return token.lexeme
+        else:
+            return Parser.tag_to_msg(token.tag)
+        
     def __match(self, tag: Tag):
         if self.lookahead.tag == tag:
             return self.__move()
-        self.__error(self.lookahead.line, f'Esperado "{tag.value}", mas encontrado "{self.lookahead.tag.name}"')
+        self.__error(self.lookahead.line, f'Esperado "{Parser.tag_to_msg(tag)}", mas encontrado "{Parser.token_to_msg(self.lookahead)}"')
 
     def __synchronize(self):
         while self.lookahead.tag not in (Tag.EOF, Tag.BEGIN, Tag.IF, Tag.WRITE, Tag.INT, Tag.REAL, Tag.BOOL, Tag.END):
@@ -86,7 +111,7 @@ class Parser:
             case Tag.WRITE: 
                 return self.__write()   
             case _: 
-                self.__error(self.lookahead.line, 'comando inválido!')        
+                self.__error(self.lookahead.line, f'"{Parser.token_to_msg(self.lookahead)}" não é um comando válido!')
 
 
     def __decl(self):
@@ -170,5 +195,5 @@ class Parser:
                 var_tok = self.__move()
                 expr = VarNode(var_tok)
             case _:
-                self.__error(self.lookahead.line, 'Expressão inválida!')
+                self.__error(self.lookahead.line, f'"{Parser.token_to_msg(self.lookahead)}" invalidou a expressão!')
         return expr

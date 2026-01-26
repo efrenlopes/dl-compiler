@@ -34,8 +34,8 @@ class Tag(Enum):
     LIT_REAL = auto()
 
     #Outros
-    EOF = auto()
     UNK = auto()
+    EOF = auto()
     CONVERT = auto()
         
 

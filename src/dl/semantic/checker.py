@@ -15,9 +15,12 @@ class Checker(Visitor):
 
     def __error(self, line: int, msg: str):
         self.had_errors = True
-        print(f'Erro semântico na linha {line}: {msg}')  
-        
+        print(f'Erro semântico na linha {line}: {msg}')
 
+    def __warning(self, line: int, msg: str):
+        print(f'Aviso na linha {line}: {msg}') 
+        
+        
     def visit_program_node(self, node: ProgramNode):
         node.stmt.accept(self)
         
@@ -30,7 +33,7 @@ class Checker(Visitor):
         for var in self.__env_top.var_list():
             info = self.__env_top.get_local(var)
             if not info.used:
-                print(f'Aviso: variável "{var}" declarada na linha {info.declaration_line} mas não usada')
+                self.__warning(info.declaration_line, f'variável "{var}" declarada mas não usada.')
         self.__env_top = saved_env
 
 
