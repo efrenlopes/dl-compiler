@@ -15,6 +15,7 @@ class Lexer:
         self.__words[Tag.END.value] = Tag.END
         self.__words[Tag.WRITE.value] = Tag.WRITE
         self.__words[Tag.IF.value] = Tag.IF
+        self.__words[Tag.WHILE.value] = Tag.WHILE
         self.__words[Tag.INT.value] = Tag.INT
         self.__words[Tag.REAL.value] = Tag.REAL
         self.__words[Tag.BOOL.value] = Tag.BOOL

@@ -82,7 +82,14 @@ class Checker(Visitor):
         if not node.expr.type.is_boolean:
             self.__error(node.line, 'Esperada uma expressão lógica')
         node.stmt.accept(self)
-        
+
+
+    def visit_while_node(self, node: IfNode):
+        node.expr.accept(self)
+        if not node.expr.type.is_boolean:
+            self.__error(node.line, 'Esperada uma expressão lógica')
+        node.stmt.accept(self)
+
 
     def visit_write_node(self, node: WriteNode):
         node.expr.accept(self)

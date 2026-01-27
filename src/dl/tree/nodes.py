@@ -185,7 +185,7 @@ class AssignNode(StmtNode):
 
 
 
-class IfNode(StmtNode):    
+class IfNode(StmtNode):
     def __init__(self, token: Token, expr: ExprNode, stmt: StmtNode):
         super().__init__(token)
         self.expr = expr
@@ -194,6 +194,15 @@ class IfNode(StmtNode):
     def accept(self, visitor: Visitor):
         return visitor.visit_if_node(self)
 
+
+class WhileNode(StmtNode):
+    def __init__(self, token: Token, expr: ExprNode, stmt: StmtNode):
+        super().__init__(token)
+        self.expr = expr
+        self.stmt = stmt
+
+    def accept(self, visitor: Visitor):
+        return visitor.visit_while_node(self)
 
 
 

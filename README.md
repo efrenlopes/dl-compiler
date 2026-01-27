@@ -7,12 +7,13 @@ PYTHONPATH=src python -m dl tests/inputs/prog.dl
 ## Gramática Projeto completo da linguagem DL
 ```bnf
 <PROGRAM>   ::= "programa" ID <STMT> "."
-<STMT>	    ::= <BLOCK> | <DECL> | <ASSIGN> | <WRITE> | <IF>
+<STMT>	    ::= <BLOCK> | <DECL> | <ASSIGN> | <WRITE> | <IF> | <WHILE>
 <DECL>      ::= TYPE ID
 <BLOCK>     ::= "inicio" <STMTS> "fim"
 <STMTS>     ::= <STMT> ";" <STMTS> | ε
 <ASSIGN>    ::= ID "=" <EXPR>
 <IF>        ::= "se" "(" <EXPR> ")" <STMT>
+<WHILE>     ::= "enquanto" "(" <EXPR> ")" <STMT>
 <WRITE>     ::= "escreva" "(" <EXPR> ")"
 <EXPR>      ::= <EXPR> "|" <EQUAL> | <EQUAL>
 <EQUAL>     ::= <EQUAL> "==" <REL> | <REL>

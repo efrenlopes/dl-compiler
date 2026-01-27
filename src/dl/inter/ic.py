@@ -4,7 +4,19 @@ from dl.semantic.type import Type
 from dl.inter.operator import Operator
 from dl.inter.operand import Operand, Temp, Const, Label
 from dl.inter.instr import Instr
-from dl.tree.nodes import Visitor, ProgramNode, BlockNode, DeclNode, AssignNode, IfNode, ConvertNode, VarNode, BinaryNode, LiteralNode
+from dl.tree.nodes import (
+    Visitor,
+    ProgramNode,
+    BlockNode,
+    DeclNode,
+    AssignNode,
+    IfNode,
+    WhileNode,
+    ConvertNode,
+    VarNode,
+    BinaryNode,
+    LiteralNode
+)
 from ctypes import c_int32, c_double
 
 
@@ -132,7 +144,21 @@ class IC(Visitor):
         self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_end))
         #end
         self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_end))
-        
+
+
+    def visit_while_node(self, node: WhileNode):
+        lbl_begin = Label()
+        lbl_end = Label()
+        #test
+        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_begin))
+        arg = node.expr.accept(self)
+        self.add_instr(Instr(Operator.IFFALSE, arg, Operand.EMPTY, lbl_end))
+        #true
+        node.stmt.accept(self)
+        self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_begin))
+        #end
+        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_end))
+
     
     def visit_write_node(self, node: ConvertNode):
         arg = node.expr.accept(self)

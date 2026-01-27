@@ -22,6 +22,7 @@ class Tag(Enum):
     END = 'fim'
     WRITE = 'escreva'
     IF = 'se'
+    WHILE = 'enquanto'
     INT = 'inteiro'
     REAL = 'real'
     BOOL = 'booleano'
