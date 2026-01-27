@@ -7,6 +7,8 @@ class Tag(Enum):
     SUM = '+'
     SUB = '-'
     MUL = '*'
+    DIV = '/'
+    MOD = '%'
     EQ = '=='
     LT = '<'
     GT = '>'

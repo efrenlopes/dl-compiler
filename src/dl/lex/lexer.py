@@ -50,6 +50,12 @@ class Lexer:
             case Tag.MUL.value:
                 next_char()
                 return Token(self.line, Tag.MUL)
+            case Tag.DIV.value:
+                next_char()
+                return Token(self.line, Tag.DIV)
+            case Tag.MOD.value:
+                next_char()
+                return Token(self.line, Tag.MOD)
             case Tag.OR.value:
                 next_char()
                 return Token(self.line, Tag.OR)

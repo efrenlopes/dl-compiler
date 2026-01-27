@@ -26,6 +26,8 @@ class IC(Visitor):
         Tag.SUM: Operator.SUM,
         Tag.SUB: Operator.SUB,
         Tag.MUL: Operator.MUL,
+        Tag.DIV: Operator.DIV,
+        Tag.MOD: Operator.MOD,
         Tag.EQ : Operator.EQ,
         Tag.LT: Operator.LT,
         Tag.GT: Operator.GT
@@ -186,6 +188,8 @@ class IC(Visitor):
         Operator.SUM: lambda a, b: a + b,
         Operator.SUB: lambda a, b: a - b,
         Operator.MUL: lambda a, b: a * b,
+        Operator.DIV: lambda a, b: a / b if isinstance(a, float) else a//b,
+        Operator.MOD: lambda a, b: a % b,
         Operator.EQ: lambda a, b: a == b,
         Operator.LT: lambda a, b: a < b,
         Operator.GT: lambda a, b: a > b,
@@ -237,7 +241,10 @@ class IC(Visitor):
                     index = self.__label_map[result]
                     continue
                 case Operator.PRINT:
-                    print('output:', value1)
+                    if isinstance(value1, float):
+                        print(f'output: {value1:.4f}')
+                    else:
+                        print(f'output: {value1}')
                 case Operator.CONVERT:
                     vars[result] = float(value1)
                 case Operator.MOVE:

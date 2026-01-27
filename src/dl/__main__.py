@@ -48,7 +48,7 @@ if __name__ == '__main__':
     file.write('\n'.join(code))
     file.close()
     print('\n\nSaída do programa alvo gerado')
-    subprocess.run(['gcc', file_name, '-o', 'out/prog'], check=True)
+    subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
     subprocess.run(['./out/prog'], check=True)
 
     #Fim

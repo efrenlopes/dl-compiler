@@ -192,7 +192,7 @@ class Parser:
 
     def __term(self):
         expr = self.__factor()
-        while self.lookahead.tag == Tag.MUL:
+        while self.lookahead.tag in (Tag.MUL, Tag.DIV, Tag.MOD):
             op_tok = self.__move()
             expr = BinaryNode(op_tok, expr, self.__factor())
         return expr

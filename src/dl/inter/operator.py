@@ -12,6 +12,8 @@ class Operator(Enum):
     SUM = '+'
     SUB = '-'
     MUL = '*'
+    DIV = '/'
+    MOD = '%'
     EQ = '=='
     GT = '>'
     LT = '<'

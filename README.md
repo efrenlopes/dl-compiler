@@ -19,7 +19,7 @@ PYTHONPATH=src python -m dl tests/inputs/prog.dl
 <EQUAL>     ::= <EQUAL> "==" <REL> | <REL>
 <REL>       ::= <REL> "<" <ARITH> | <REL> ">" <ARITH> | <ARITH>
 <ARITH>     ::= <ARITH> "+" <TERM> | <ARITH> "-" <TERM> | <TERM>
-<TERM>      ::= <TERM> "*" <FACTOR>
+<TERM>      ::= <TERM> "*" <FACTOR> | <TERM> "/" <FACTOR> | <TERM> "%" <FACTOR>
 <FACTOR>    ::= "(" <EXPR> ")" | ID | LIT_INT | LIT_REAL | LIT_BOOL
 
 LETTER      = "a" | "b" | ... | "z" | "A" | "B" | ... "Z" | "_"

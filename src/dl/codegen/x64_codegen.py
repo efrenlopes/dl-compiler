@@ -10,12 +10,16 @@ class X64CodeGenerator():
             Operator.SUM: 'add',
             Operator.SUB: 'sub', 
             Operator.MUL: 'imul',
+            Operator.DIV: 'idiv',
+            Operator.MOD: 'idiv'
     }
 
     OP_ARITH_DOUBLE = {
             Operator.SUM: 'addsd',
             Operator.SUB: 'subsd',
-            Operator.MUL: 'mulsd'
+            Operator.MUL: 'mulsd',
+            Operator.DIV: 'divsd',
+            Operator.MOD: 'divsd'
     }
 
     OP_REL_INT = {
@@ -171,16 +175,41 @@ class X64CodeGenerator():
                     self.code.append(f'\t{self.MOVE[Type.REAL]} {dest}, {self.ACC_REG[Type.REAL]}')
                 
                 case _:
-                    if instr.op in self.OP_ARITH[type]: # Operações aritméticas
+                    if instr.op in (Operator.SUM, Operator.SUB, Operator.MUL):
                         self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                         self.code.append(f'\t{self.OP_ARITH[type][instr.op]} {self.ACC_REG[type]}, {arg2}')
                         self.code.append(f'\t{self.MOVE[type]} {dest}, {self.ACC_REG[type]}')
-                    else: # Operações relacionais
+                    elif instr.op in (Operator.EQ, Operator.LT, Operator.GT):
                         self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                         self.code.append(f'\t{self.CMP[type]} {self.ACC_REG[type]}, {arg2}')
                         self.code.append(f'\t{self.OP_REL[type][instr.op]} al')
                         self.code.append('\tmovzx eax, al')
                         self.code.append(f'\tmov {dest}, eax')
+                    elif instr.op == Operator.DIV:
+                        if type == Type.REAL:
+                            self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
+                            self.code.append(f'\t{self.OP_ARITH[type][instr.op]} {self.ACC_REG[type]}, {arg2}')
+                            self.code.append(f'\t{self.MOVE[type]} {dest}, {self.ACC_REG[type]}')
+                        else:
+                            self.code.append(f'\tmov eax, {arg1}')
+                            self.code.append('\tcdq')
+                            self.code.append(f'\tmov ecx, {arg2}')
+                            self.code.append('\tidiv ecx')
+                            self.code.append(f'\tmov {dest}, eax')
+                    elif instr.op == Operator.MOD:
+                        if type == Type.REAL:
+                            self.code.append(f'\tmovsd xmm0, {arg1}')
+                            self.code.append(f'\tmovsd xmm1, {arg2}')
+                            self.code.append('\tmov eax, 2')
+                            self.code.append('\tcall fmod@PLT')
+                            self.code.append(f'\tmovsd {dest}, xmm0')
+                        else:
+                            self.code.append(f'\tmov eax, {arg1}')
+                            self.code.append('\tcdq')
+                            self.code.append(f'\tmov ecx, {arg2}')
+                            self.code.append('\tidiv ecx')
+                            self.code.append(f'\tmov {dest}, edx')
+
 
         # Epílogo
         self.code.extend([
@@ -218,7 +247,7 @@ class X64CodeGenerator():
 
             '.section .rodata',
             '\tfmt_int:    .string "output: %d\\n"',
-            '\tfmt_double:    .string "output: %f\\n"'
+            '\tfmt_double: .string "output: %.4f\\n"'
         ])
 
         for value in self.const_map:

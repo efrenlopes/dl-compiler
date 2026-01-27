@@ -11,6 +11,6 @@ programa area_circulo inicio
       raio = raio + 1;
       area = 3.1415 * raio * raio;
     fim;
-    escreva(area);    
+    escreva(area/2);
   fim;
 fim.
