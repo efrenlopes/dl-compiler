@@ -5,6 +5,7 @@ class TypeCategory(IntEnum):
     BOOLEAN = auto()
     INTEGRAL = auto()
     FLOATING = auto()
+    UNDEF = auto()
 
 
 class Type:
@@ -31,7 +32,11 @@ class Type:
     @property
     def is_float(self):
         return self.category == TypeCategory.FLOATING
-    
+
+    @property
+    def is_undef(self):
+        return self.category == TypeCategory.UNDEF
+
     @property
     def is_numeric(self):
         return self.is_integral or self.is_float
@@ -51,17 +56,20 @@ class Type:
                 return Type.REAL
             case Tag.BOOL | Tag.LIT_TRUE | Tag.LIT_FALSE: 
                 return Type.BOOL
-        return None
+        return Type.UNDEF
 
     @staticmethod
     def common_type(t1: 'Type', t2: 'Type'):
         if t1 == t2:
             return t1
-        elif t1 and t2 and t1.is_numeric and t2.is_numeric:
+        elif t1.is_undef or t2.is_undef:
+            return Type.is_undef
+        elif t1.is_numeric and t2.is_numeric:
             return t1 if t1.rank > t2.rank else t2
-        return None          
+        return Type.UNDEF
 
 
 Type.BOOL   = Type('bool', TypeCategory.BOOLEAN,  4, False, 0)
 Type.INT    = Type('int', TypeCategory.INTEGRAL, 4, True, 5)
 Type.REAL   = Type('real', TypeCategory.FLOATING, 8, True, 9)
+Type.UNDEF  = Type('undef', TypeCategory.UNDEF, 0, False, 0)

@@ -64,6 +64,7 @@ class Checker(Visitor):
             node.var.scope = self.__env_top.number
             self.__env_top.put(var_name, SymbolInfo(node.var.type, node.var.scope, node.line))
         else:
+            node.var.type = Type.UNDEF
             self.__error(node.line, f'"{var_name}" já declarada!')
 
 
@@ -80,6 +81,7 @@ class Checker(Visitor):
                 #widen
                 node.expr = Checker.widening(node.expr, node.var.type)
         else:
+            node.var.type = Type.UNDEF
             self.__error(node.var.line, f'"{node.var.name}" não declarada!')
 
     @staticmethod
@@ -115,22 +117,21 @@ class Checker(Visitor):
             node.var.scope = info.scope
             info.initialized = True
         else:
+            node.var.type = Type.UNDEF
             self.__error(node.var.line, f'"{node.var.name}" não declarada!')
-
-
-
 
 
     def visit_var_node(self, node: VarNode):
         info = self.__env_top.get(node.name)
-        if not info:
-            self.__error(node.line, f'"{node.name}" não declarada!')
-        else:
+        if info:
             node.type = info.type
             node.scope = info.scope
             info.used = True
             if not info.initialized:
-                self.__error(node.line, f'"{node.name}" não inicializada!')    
+                self.__error(node.line, f'"{node.name}" não inicializada!')
+        else:
+            node.type = Type.UNDEF
+            self.__error(node.line, f'"{node.name}" não declarada!')
 
 
     def visit_literal_node(self, node: LiteralNode):
@@ -161,25 +162,23 @@ class Checker(Visitor):
         t2 = node.expr2.type
         common_type = Type.common_type(t1, t2)
 
-        if not common_type:
-            self.__error(node.line, f'Operando indefinido na operação "{node.operator}".')
-            return
-        
+        node_type = Type.UNDEF
         match node.operator:
             case Tag.OR | Tag.AND:
                 if t1.is_boolean and t2.is_boolean:
-                    node.type = Type.BOOL
+                    node_type = Type.BOOL
             case Tag.EQ | Tag.NE:
                 if common_type:
-                    node.type = Type.BOOL
+                    node_type = Type.BOOL
             case Tag.SUM | Tag.SUB | Tag.MUL | Tag.DIV | Tag.MOD:
                 if t1.is_numeric and t2.is_numeric:
-                    node.type = common_type
+                    node_type = common_type
             case Tag.LT | Tag.LE | Tag.GT | Tag.GE:
                 if t1.is_numeric and t2.is_numeric:
-                    node.type = Type.BOOL
+                    node_type = Type.BOOL
         
-        if not node.type:
+        node.type = node_type
+        if node.type.is_undef:
             self.__error(node.line, f'Operação "{node.operator}" com operandos inválidos.')
         else:
             node.expr1 = Checker.widening(node.expr1, common_type)
