@@ -2,7 +2,21 @@ from dl.lex.tag import Tag
 from dl.semantic.env import Env, SymbolInfo
 from dl.semantic.type import Type
 from dl.tree.ast import AST
-from dl.tree.nodes import Visitor, ProgramNode, BlockNode, DeclNode, AssignNode, IfNode, WriteNode, VarNode, LiteralNode, BinaryNode, ConvertNode, ExprNode
+from dl.tree.nodes import (
+    Visitor,
+    ProgramNode,
+    BlockNode,
+    DeclNode,
+    AssignNode,
+    IfNode,
+    WriteNode,
+    ReadNode,
+    VarNode,
+    LiteralNode,
+    BinaryNode,
+    ConvertNode,
+    ExprNode
+)
 import colorama
 
 class Checker(Visitor):
@@ -93,8 +107,20 @@ class Checker(Visitor):
 
     def visit_write_node(self, node: WriteNode):
         node.expr.accept(self)
-    
-    
+
+    def visit_read_node(self, node: ReadNode):
+        info = self.__env_top.get(node.var.name)
+        if info:
+            node.var.type = info.type
+            node.var.scope = info.scope
+            info.initialized = True
+        else:
+            self.__error(node.var.line, f'"{node.var.name}" não declarada!')
+
+
+
+
+
     def visit_var_node(self, node: VarNode):
         info = self.__env_top.get(node.name)
         if not info:

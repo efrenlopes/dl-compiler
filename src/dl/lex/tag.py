@@ -27,6 +27,7 @@ class Tag(Enum):
     BEGIN = 'inicio'
     END = 'fim'
     WRITE = 'escreva'
+    READ = 'leia'
     IF = 'se'
     WHILE = 'enquanto'
     INT = 'inteiro'

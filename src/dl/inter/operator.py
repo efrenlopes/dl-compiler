@@ -7,6 +7,7 @@ class Operator(Enum):
     IF = 'if'
     IFFALSE = 'iffalse'
     PRINT = 'print'
+    READ = 'read'
     CONVERT = 'convert'
     MOVE = '='
     SUM = '+'

@@ -213,3 +213,13 @@ class WriteNode(StmtNode):
 
     def accept(self, visitor: Visitor):
         return visitor.visit_write_node(self)
+
+
+
+class ReadNode(StmtNode):
+    def __init__(self, token: Token, var: VarNode):
+        super().__init__(token)
+        self.var = var
+
+    def accept(self, visitor: Visitor):
+        return visitor.visit_read_node(self)

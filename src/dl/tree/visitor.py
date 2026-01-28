@@ -22,7 +22,10 @@ class Visitor(ABC):
 
     @abstractmethod
     def visit_write_node(self, node): pass
-    
+
+    @abstractmethod
+    def visit_read_node(self, node): pass
+
     @abstractmethod
     def visit_var_node(self, node): pass
     

@@ -27,6 +27,8 @@ class Instr:
                 return f'{result} {Operator.MOVE} {op} {arg1}'
             case Operator.PRINT: 
                 return f'{op} {arg1}'
+            case Operator.READ:
+                return f'{op} {result}'
             case _: 
                 return f'{result} {Operator.MOVE} {arg1} {op} {arg2}'
 

@@ -15,11 +15,13 @@ PYTHONPATH=src python -m dl tests/inputs/prog.dl
 <IF>        ::= "se" "(" <EXPR> ")" <STMT>
 <WHILE>     ::= "enquanto" "(" <EXPR> ")" <STMT>
 <WRITE>     ::= "escreva" "(" <EXPR> ")"
-<EXPR>      ::= <EXPR> "|" <EQUAL> | <EQUAL>
-<EQUAL>     ::= <EQUAL> "==" <REL> | <REL>
-<REL>       ::= <REL> "<" <ARITH> | <REL> ">" <ARITH> | <ARITH>
+<READ>      ::= "leia" "(" ID ")"
+<EXPR>      ::= <EXPR> "|" <LAND> | <LAND>
+<LAND>      ::= <LAND> "&" <EQUAL> | <EQUAL>
+<EQUAL>     ::= <EQUAL> EQ_OP <REL> | <REL>
+<REL>       ::= <REL> REL_OP <ARITH> | <ARITH>
 <ARITH>     ::= <ARITH> "+" <TERM> | <ARITH> "-" <TERM> | <TERM>
-<TERM>      ::= <TERM> "*" <FACTOR> | <TERM> "/" <FACTOR> | <TERM> "%" <FACTOR>
+<TERM>      ::= <TERM> "*" <FACTOR> | <TERM> "/" <FACTOR> | <TERM> "%" <FACTOR> | <FACTOR>
 <FACTOR>    ::= "(" <EXPR> ")" | ID | LIT_INT | LIT_REAL | LIT_BOOL
 
 LETTER      = "a" | "b" | ... | "z" | "A" | "B" | ... "Z" | "_"
@@ -29,4 +31,6 @@ LIT_INT     = DIGIT+
 LIT_REAL    = DIGIT+ "." DIGIT* 
 LIT_BOOL    = "verdade" | "falso"
 TYPE        = "inteiro" | "real" | "booleano"
+EQ_OP       = "==" | "!="
+REL_OP      = "<" | "<=" | ">" | ">="
 ```

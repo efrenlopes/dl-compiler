@@ -10,6 +10,7 @@ from dl.tree.nodes import (
     IfNode,
     WhileNode,
     WriteNode,
+    ReadNode,
     BinaryNode,
     LiteralNode,
 )
@@ -117,7 +118,9 @@ class Parser:
             case Tag.WHILE:
                 return self.__while()
             case Tag.WRITE: 
-                return self.__write()   
+                return self.__write()
+            case Tag.READ:
+                return self.__read()
             case _: 
                 self.__error(self.lookahead.line, f'"{Parser.token_to_msg(self.lookahead)}" não é um comando válido!')
 
@@ -161,6 +164,14 @@ class Parser:
         expr = self.__expr()
         match(Tag.RPAREN)
         return WriteNode(write_tok, expr)
+
+    def __read(self):
+        match = self.__match
+        read_tok = match(Tag.READ)
+        match(Tag.LPAREN)
+        var = VarNode(match(Tag.ID))
+        match(Tag.RPAREN)
+        return ReadNode(read_tok, var)
 
     def __expr(self):
         expr = self.__land()

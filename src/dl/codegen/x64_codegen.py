@@ -55,12 +55,13 @@ class X64CodeGenerator():
     MOVE = {Type.BOOL: 'mov', Type.INT: 'mov', Type.REAL: 'movsd'}
     CMP = {Type.BOOL: 'cmp', Type.INT: 'cmp', Type.REAL: 'ucomisd'}
     PRINT = {Type.BOOL: 'print_int', Type.INT: 'print_int', Type.REAL: 'print_double'}
+    READ = {Type.BOOL: 'read_int', Type.INT: 'read_int', Type.REAL: 'read_double'}
     
     # Registradores para operações
     ACC_REG = {
         Type.BOOL: 'eax',
         Type.INT: 'eax',
-        Type.REAL: 'xmm1'
+        Type.REAL: 'xmm0'
     }
 
     CALL_ARG_REG = {
@@ -143,7 +144,7 @@ class X64CodeGenerator():
 
         # Gerar código para cada instrução
         for instr in ic:
-            dest = self.__resolve_arg(instr.result)
+            result = self.__resolve_arg(instr.result)
             arg1 = self.__resolve_arg(instr.arg1)
             arg2 = self.__resolve_arg(instr.arg2)
             if arg1:
@@ -152,69 +153,74 @@ class X64CodeGenerator():
             self.code.append(f'\t# {instr}')
             match instr.op:
                 case Operator.LABEL:
-                    self.code.append(f'\t{dest}:')
+                    self.code.append(f'\t{result}:')
                 
                 case Operator.GOTO:
-                    self.code.append(f'\tjmp {dest}')
+                    self.code.append(f'\tjmp {result}')
 
                 case Operator.IF:
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                     self.code.append(f'\tcmp {self.ACC_REG[type]}, 0')
-                    self.code.append(f'\tjne {dest}')
+                    self.code.append(f'\tjne {result}')
 
                 case Operator.IFFALSE:
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                     self.code.append(f'\tcmp {self.ACC_REG[type]}, 0')
-                    self.code.append(f'\tje {dest}')
+                    self.code.append(f'\tje {result}')
                 
                 case Operator.PRINT:
                     self.code.append(f'\t{self.MOVE[type]} {self.CALL_ARG_REG[type]}, {arg1}')
                     self.code.append(f'\tcall {self.PRINT[type]}')
                 
+                case Operator.READ:
+                    type = instr.result.type
+                    self.code.append(f'\tcall {self.READ[type]}')
+                    self.code.append(f'\t{self.MOVE[type]} {result}, {self.ACC_REG[type]}')
+
                 case Operator.MOVE:  # Assign
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
-                    self.code.append(f'\t{self.MOVE[type]} {dest}, {self.ACC_REG[type]}')
+                    self.code.append(f'\t{self.MOVE[type]} {result}, {self.ACC_REG[type]}')
                 
                 case Operator.CONVERT:
                     self.code.append(f'\t{self.MOVE[Type.INT]} {self.ACC_REG[Type.INT]}, {arg1}')
                     self.code.append(f'\tcvtsi2sd {self.ACC_REG[Type.REAL]}, {self.ACC_REG[Type.INT]}')
-                    self.code.append(f'\t{self.MOVE[Type.REAL]} {dest}, {self.ACC_REG[Type.REAL]}')
+                    self.code.append(f'\t{self.MOVE[Type.REAL]} {result}, {self.ACC_REG[Type.REAL]}')
                 
                 case _:
                     if instr.op in (Operator.SUM, Operator.SUB, Operator.MUL):
                         self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                         self.code.append(f'\t{self.OP_ARITH[type][instr.op]} {self.ACC_REG[type]}, {arg2}')
-                        self.code.append(f'\t{self.MOVE[type]} {dest}, {self.ACC_REG[type]}')
+                        self.code.append(f'\t{self.MOVE[type]} {result}, {self.ACC_REG[type]}')
                     elif instr.op in (Operator.EQ, Operator.NE, Operator.LT, Operator.LE, Operator.GT, Operator.GE):
                         self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                         self.code.append(f'\t{self.CMP[type]} {self.ACC_REG[type]}, {arg2}')
                         self.code.append(f'\t{self.OP_REL[type][instr.op]} al')
                         self.code.append('\tmovzx eax, al')
-                        self.code.append(f'\tmov {dest}, eax')
+                        self.code.append(f'\tmov {result}, eax')
                     elif instr.op == Operator.DIV:
                         if type == Type.REAL:
                             self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                             self.code.append(f'\t{self.OP_ARITH[type][instr.op]} {self.ACC_REG[type]}, {arg2}')
-                            self.code.append(f'\t{self.MOVE[type]} {dest}, {self.ACC_REG[type]}')
+                            self.code.append(f'\t{self.MOVE[type]} {result}, {self.ACC_REG[type]}')
                         else:
                             self.code.append(f'\tmov eax, {arg1}')
                             self.code.append('\tcdq')
                             self.code.append(f'\tmov ecx, {arg2}')
                             self.code.append('\tidiv ecx')
-                            self.code.append(f'\tmov {dest}, eax')
+                            self.code.append(f'\tmov {result}, eax')
                     elif instr.op == Operator.MOD:
                         if type == Type.REAL:
                             self.code.append(f'\tmovsd xmm0, {arg1}')
                             self.code.append(f'\tmovsd xmm1, {arg2}')
                             self.code.append('\tmov eax, 2')
                             self.code.append('\tcall fmod@PLT')
-                            self.code.append(f'\tmovsd {dest}, xmm0')
+                            self.code.append(f'\tmovsd {result}, xmm0')
                         else:
                             self.code.append(f'\tmov eax, {arg1}')
                             self.code.append('\tcdq')
                             self.code.append(f'\tmov ecx, {arg2}')
                             self.code.append('\tidiv ecx')
-                            self.code.append(f'\tmov {dest}, edx')
+                            self.code.append(f'\tmov {result}, edx')
 
 
         # Epílogo
@@ -232,7 +238,7 @@ class X64CodeGenerator():
             '    mov rbp, rsp',
             '    sub rsp, 16',
             '    mov esi, edi',
-            '    lea rdi, [rip + fmt_int]',
+            '    lea rdi, [rip + fmt_out_int]',
             '    xor eax, eax',
             '    call printf',
             '    leave',
@@ -244,21 +250,69 @@ class X64CodeGenerator():
             'print_double:',
             '   push rbp',
             '   mov rbp, rsp',
-            '   sub rsp, 16                 # Alinhamento de pilha (16 bytes)',
-            '   lea rdi, [rip + fmt_double] # Carrega o ponteiro da string de formato',
-            '   mov eax, 1                  # Indica ao printf que existe 1 reg XMM sendo usado (XMM0)',
+            '   sub rsp, 16                     # Alinhamento de pilha (16 bytes)',
+            '   lea rdi, [rip + fmt_out_double] # Carrega o ponteiro da string de formato',
+            '   mov eax, 1                      # Indica ao printf que existe 1 reg XMM sendo usado (XMM0)',
             '   call printf',
             '   leave',
             '   ret',
-
+            '',
+            '# ---------------------------------------------------------',
+            '# Rotina: read_int',
+            '# Retorno: eax (o valor lido)',
+            '# ---------------------------------------------------------',
+            'read_int:',
+            '    push rbp',
+            '    mov rbp, rsp',
+            '    sub rsp, 16',
+            '    ',
+            '    # Exibe o prompt "input: "',
+            '    lea rdi, [rip + str_input_prompt]',
+            '    xor eax, eax',
+            '    call printf@PLT',
+            '    ',
+            '    # Realiza a leitura',
+            '    lea rdi, [rip + fmt_in_int]',
+            '    lea rsi, [rbp - 4]',
+            '    xor eax, eax',
+            '    call scanf@PLT',
+            '    ',
+            '    mov eax, [rbp - 4]',
+            '    leave',
+            '    ret',
+            '',
+            '# ---------------------------------------------------------',
+            '# Rotina: read_double',
+            '# Retorno: xmm0',
+            '# ---------------------------------------------------------',
+            'read_double:',
+            '    push rbp',
+            '    mov rbp, rsp',
+            '    sub rsp, 16',
+            '    ',
+            '    # Exibe o prompt "input: "',
+            '    lea rdi, [rip + str_input_prompt]',
+            '    xor eax, eax',
+            '    call printf@PLT',
+            '    ',
+            '    # Realiza a leitura',
+            '    lea rdi, [rip + fmt_in_double]',
+            '    lea rsi, [rbp - 8]',
+            '    xor eax, eax',
+            '    call scanf@PLT',
+            '    ',
+            '    movsd xmm0, [rbp - 8]',
+            '    leave',
+            '    ret',            '',
             '.section .rodata',
-            '\tfmt_int:    .string "output: %d\\n"',
-            '\tfmt_double: .string "output: %.4f\\n"'
+            '\tstr_input_prompt: .string "input: "',
+            '\tfmt_in_int:         .string "%d"',
+            '\tfmt_in_double:      .string "%lf"',
+            '\tfmt_out_int:     .string "output: %d\\n"',
+            '\tfmt_out_double:  .string "output: %.4lf\\n"',
         ])
 
         for value in self.const_map:
             self.code.append(f'\t{self.const_map[value]}: .double {value}')
         
         self.code.append('\n.section .note.GNU-stack,"",@progbits\n')
-        #'\tconstn: .double 12.5',
-        #    '',

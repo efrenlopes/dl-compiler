@@ -12,6 +12,8 @@ from dl.tree.nodes import (
     AssignNode,
     IfNode,
     WhileNode,
+    WriteNode,
+    ReadNode,
     ConvertNode,
     VarNode,
     BinaryNode,
@@ -184,14 +186,19 @@ class IC(Visitor):
         self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_end))
 
     
-    def visit_write_node(self, node: ConvertNode):
+    def visit_write_node(self, node: WriteNode):
         arg = node.expr.accept(self)
         self.add_instr(Instr(Operator.PRINT, arg, Operand.EMPTY, Operand.EMPTY))
 
-    
 
-    
-        
+    def visit_read_node(self, node: ReadNode):
+        if (node.var.name, node.var.scope) not in self.__var_temp_map:
+            temp = Temp(node.var.type)
+            self.__var_temp_map[(node.var.name, node.var.scope)] = temp
+        temp = node.var.accept(self)
+        self.add_instr(Instr(Operator.READ, Operand.EMPTY, Operand.EMPTY, temp))
+
+
     
         
 
@@ -269,6 +276,19 @@ class IC(Visitor):
                         print(f'output: {value1:.4f}')
                     else:
                         print(f'output: {int(value1)}')
+                case Operator.READ:
+                    try:
+                        i = input('input: ')
+                        match result.type:
+                            case Type.BOOL:
+                                i = bool(int(i))
+                            case Type.INT:
+                                i = int(i)
+                            case Type.REAL:
+                                i = float(i)
+                        vars[result] = i
+                    except ValueError:
+                        print('Entrada de dados inválida! Programa encerrado.')
                 case Operator.CONVERT:
                     vars[result] = float(value1)
                 case Operator.MOVE:
