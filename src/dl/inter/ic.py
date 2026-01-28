@@ -11,6 +11,7 @@ from dl.tree.nodes import (
     DeclNode,
     AssignNode,
     IfNode,
+    ElseNode,
     WhileNode,
     WriteNode,
     ReadNode,
@@ -162,14 +163,48 @@ class IC(Visitor):
 
     def visit_if_node(self, node: IfNode):
         arg = node.expr.accept(self)
-        lbl_end = Label()
+        lbl_out = Label()
         #test
-        self.add_instr(Instr(Operator.IFFALSE, arg, Operand.EMPTY, lbl_end))
+        self.add_instr(Instr(Operator.IFFALSE, arg, Operand.EMPTY, lbl_out))
         #true
         node.stmt.accept(self)
-        self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_end))
-        #end
-        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_end))
+        self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_out))
+        #out
+        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_out))
+
+
+    def visit_else_node(self, node: ElseNode):
+        arg = node.expr.accept(self)
+        lbl_else = Label()
+        lbl_out = Label()
+        #test
+        self.add_instr(Instr(Operator.IFFALSE, arg, Operand.EMPTY, lbl_else))
+        #if-stmt
+        node.stmt1.accept(self)
+        self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_out))
+        #else-stmt
+        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_else))
+        node.stmt2.accept(self)
+        self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_out))
+        #out
+        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_out))
+
+        # expr = self._expr.gen_inter_code()
+        # lbl_true = emitter.new_label()
+        # lbl_false = emitter.new_label()
+        # lbl_out = emitter.new_label()
+        # #Vai para lbl_true caso verdade e para lbl_false caso contrário
+        # emitter.emit_if_goto(expr.as_inter_code(), lbl_true)
+        # emitter.emit_goto(lbl_false)
+        # #Processa o corpo do IF e vai para lbl_out
+        # emitter.emit_label(lbl_true)
+        # self._stmt1.gen_inter_code()
+        # emitter.emit_goto(lbl_out)
+        # #Processa o corpo do ELSE
+        # emitter.emit_label(lbl_false)
+        # self._stmt2.gen_inter_code()
+        # #Label para fora do IF-ELSE
+        # emitter.emit_label(lbl_out)
 
 
     def visit_while_node(self, node: WhileNode):

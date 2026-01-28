@@ -29,6 +29,7 @@ class Tag(Enum):
     WRITE = 'escreva'
     READ = 'leia'
     IF = 'se'
+    ELSE = 'senao'
     WHILE = 'enquanto'
     INT = 'inteiro'
     REAL = 'real'

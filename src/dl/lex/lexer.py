@@ -16,6 +16,7 @@ class Lexer:
         self.__words[Tag.WRITE.value] = Tag.WRITE
         self.__words[Tag.READ.value] = Tag.READ
         self.__words[Tag.IF.value] = Tag.IF
+        self.__words[Tag.ELSE.value] = Tag.ELSE
         self.__words[Tag.WHILE.value] = Tag.WHILE
         self.__words[Tag.INT.value] = Tag.INT
         self.__words[Tag.REAL.value] = Tag.REAL
@@ -36,7 +37,7 @@ class Lexer:
         while True:
             # 1. Ignora espaços
             while self.peek in [' ', '\n', '\t', '\r']:
-                next_char()            
+                next_char()       
             
             # 2. Verifica se pode ser um comentário
             if self.peek == '/':

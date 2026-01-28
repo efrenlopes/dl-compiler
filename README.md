@@ -13,6 +13,7 @@ PYTHONPATH=src python -m dl tests/inputs/prog.dl
 <STMTS>     ::= <STMT> ";" <STMTS> | ε
 <ASSIGN>    ::= ID "=" <EXPR>
 <IF>        ::= "se" "(" <EXPR> ")" <STMT>
+<ELSE>      ::= "se" "(" <EXPR> ")" <STMT> "senao" <STMT>
 <WHILE>     ::= "enquanto" "(" <EXPR> ")" <STMT>
 <WRITE>     ::= "escreva" "(" <EXPR> ")"
 <READ>      ::= "leia" "(" ID ")"

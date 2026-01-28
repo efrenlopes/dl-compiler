@@ -9,6 +9,7 @@ from dl.tree.nodes import (
     DeclNode,
     AssignNode,
     IfNode,
+    ElseNode,
     WriteNode,
     ReadNode,
     VarNode,
@@ -98,6 +99,14 @@ class Checker(Visitor):
         if not node.expr.type.is_boolean:
             self.__error(node.line, 'Esperada uma expressão lógica')
         node.stmt.accept(self)
+
+
+    def visit_else_node(self, node: ElseNode):
+        node.expr.accept(self)
+        if not node.expr.type.is_boolean:
+            self.__error(node.line, 'Esperada uma expressão lógica')
+        node.stmt1.accept(self)
+        node.stmt2.accept(self)
 
 
     def visit_while_node(self, node: IfNode):

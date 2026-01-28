@@ -8,6 +8,7 @@ from dl.tree.nodes import (
     DeclNode,
     AssignNode,
     IfNode,
+    ElseNode,
     WhileNode,
     WriteNode,
     ReadNode,
@@ -145,8 +146,12 @@ class Parser:
         match(Tag.LPAREN)
         expr = self.__expr()
         match(Tag.RPAREN)
-        stmt = self.__stmt()
-        return IfNode(if_tok, expr, stmt)
+        stmt1 = self.__stmt()
+        if self.lookahead.tag != Tag.ELSE:
+            return IfNode(if_tok, expr, stmt1)
+        match(Tag.ELSE)
+        stmt2 = self.__stmt()
+        return ElseNode(if_tok, expr, stmt1, stmt2)
 
     def __while(self):
         match = self.__match

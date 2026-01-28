@@ -18,6 +18,9 @@ class Visitor(ABC):
     def visit_if_node(self, node): pass
 
     @abstractmethod
+    def visit_else_node(self, node): pass
+
+    @abstractmethod
     def visit_while_node(self, node): pass
 
     @abstractmethod

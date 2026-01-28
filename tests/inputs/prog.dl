@@ -4,8 +4,10 @@ programa primo inicio
     
     leia(num);
     i = 2;
-    se (num <= 1) eh_primo = falso;
-    se (num > 1) eh_primo = verdade;
+    se (num <= 1)
+        eh_primo = falso
+    senao
+        eh_primo = verdade;
 
     enquanto ( i < num & eh_primo == verdade) inicio
         se (num%i == 0)

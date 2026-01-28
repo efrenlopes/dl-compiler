@@ -195,6 +195,17 @@ class IfNode(StmtNode):
         return visitor.visit_if_node(self)
 
 
+class ElseNode(StmtNode):
+    def __init__(self, token: Token, expr: ExprNode, stmt1: StmtNode, stmt2: StmtNode):
+        super().__init__(token)
+        self.expr = expr
+        self.stmt1 = stmt1
+        self.stmt2 = stmt2
+
+    def accept(self, visitor: Visitor):
+        return visitor.visit_else_node(self)
+
+
 class WhileNode(StmtNode):
     def __init__(self, token: Token, expr: ExprNode, stmt: StmtNode):
         super().__init__(token)
