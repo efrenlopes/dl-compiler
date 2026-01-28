@@ -207,7 +207,7 @@ class IC(Visitor):
             if instr.op == Operator.LABEL:
                 self.__label_map[instr.result] = i
     
-    def label_index(self, label: str):
+    def label_index(self, label: Label):
         return self.__label_map[label]
 
 
