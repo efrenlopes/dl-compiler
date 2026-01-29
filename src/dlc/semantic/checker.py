@@ -1,8 +1,8 @@
-from dl.lex.tag import Tag
-from dl.semantic.env import Env, SymbolInfo
-from dl.semantic.type import Type
-from dl.tree.ast import AST
-from dl.tree.nodes import (
+from dlc.lex.tag import Tag
+from dlc.semantic.env import Env, SymbolInfo
+from dlc.semantic.type import Type
+from dlc.tree.ast import AST
+from dlc.tree.nodes import (
     Visitor,
     ProgramNode,
     BlockNode,

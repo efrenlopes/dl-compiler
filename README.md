@@ -4,7 +4,7 @@ PYTHONPATH=src python -m dl tests/inputs/prog.dl
 ```
 
 
-## Gramática Projeto completo da linguagem DL
+## Gramática da linguagem DL
 ```bnf
 <PROGRAM>   ::= "programa" ID <STMT> "."
 <STMT>	    ::= <BLOCK> | <DECL> | <ASSIGN> | <WRITE> | <IF> | <WHILE>

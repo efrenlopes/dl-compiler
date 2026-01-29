@@ -1,4 +1,4 @@
-from dl.tree.nodes import Node
+from dlc.tree.nodes import Node
 
 class AST:
     

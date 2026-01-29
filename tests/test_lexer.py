@@ -1,5 +1,5 @@
-from dl.lex.tag import Tag
-from dl.lex.lexer import Lexer
+from dlc.lex.tag import Tag
+from dlc.lex.lexer import Lexer
 from io import StringIO
 
 source_code = '''

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dl.semantic.type import Type
+from dlc.semantic.type import Type
 
 
 class Operand(ABC):

@@ -1,8 +1,8 @@
-from dl.semantic.type import Type
-from dl.inter.operator import Operator
-from dl.inter.ic import IC
-from dl.codegen.live_range import LiveRange
-from dl.codegen.reg_alloc import LinearScanRegisterAllocation
+from dlc.semantic.type import Type
+from dlc.inter.operator import Operator
+from dlc.inter.ic import IC
+from dlc.codegen.live_range import LiveRange
+from dlc.codegen.reg_alloc import LinearScanRegisterAllocation
 
 
 class X64CodeGenerator():

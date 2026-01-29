@@ -1,4 +1,4 @@
-from dl.semantic.type import Type
+from dlc.semantic.type import Type
 
 class SymbolInfo:
     def __init__(self, type: Type, scope: int, declaration_line: int):

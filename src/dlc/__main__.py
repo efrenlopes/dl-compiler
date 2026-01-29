@@ -1,8 +1,8 @@
-from dl.lex.lexer import Lexer
-from dl.syntax.parser import Parser
-from dl.semantic.checker import Checker
-from dl.inter.ic import IC
-from dl.codegen.x64_codegen import X64CodeGenerator
+from dlc.lex.lexer import Lexer
+from dlc.syntax.parser import Parser
+from dlc.semantic.checker import Checker
+from dlc.inter.ic import IC
+from dlc.codegen.x64_codegen import X64CodeGenerator
 from pathlib import Path
 import sys
 import subprocess

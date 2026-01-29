@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from dl.lex.tag import Tag
-from dl.lex.lexer import Token
-from dl.tree.visitor import Visitor
+from dlc.lex.tag import Tag
+from dlc.lex.lexer import Token
+from dlc.tree.visitor import Visitor
 
 
 class Node(ABC):

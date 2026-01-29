@@ -1,10 +1,10 @@
-from dl.lex.tag import Tag
-from dl.tree.ast import AST
-from dl.semantic.type import Type
-from dl.inter.operator import Operator
-from dl.inter.operand import Operand, Temp, Const, Label
-from dl.inter.instr import Instr
-from dl.tree.nodes import (
+from dlc.lex.tag import Tag
+from dlc.tree.ast import AST
+from dlc.semantic.type import Type
+from dlc.inter.operator import Operator
+from dlc.inter.operand import Operand, Temp, Const, Label
+from dlc.inter.instr import Instr
+from dlc.tree.nodes import (
     Visitor,
     ProgramNode,
     BlockNode,

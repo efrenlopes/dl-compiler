@@ -1,7 +1,7 @@
-from dl.lex.tag import Tag
-from dl.lex.token import Token
-from dl.tree.ast import AST
-from dl.tree.nodes import (
+from dlc.lex.tag import Tag
+from dlc.lex.token import Token
+from dlc.tree.ast import AST
+from dlc.tree.nodes import (
     ProgramNode,
     BlockNode,
     VarNode,

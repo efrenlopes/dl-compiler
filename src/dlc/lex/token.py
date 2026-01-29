@@ -1,4 +1,4 @@
-from dl.lex.tag import Tag
+from dlc.lex.tag import Tag
 
 class Token:
     

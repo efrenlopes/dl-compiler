@@ -1,5 +1,5 @@
-from dl.lex.tag import Tag
-from dl.lex.token import Token
+from dlc.lex.tag import Tag
+from dlc.lex.token import Token
 
 class Lexer:
     EOF_CHAR = ''

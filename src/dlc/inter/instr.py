@@ -1,5 +1,5 @@
-from dl.inter.operator import Operator
-from dl.inter.operand import Operand
+from dlc.inter.operator import Operator
+from dlc.inter.operand import Operand
 
 class Instr:
     def __init__(self, op: Operator, arg1: Operand, arg2: Operand, result: Operand):
