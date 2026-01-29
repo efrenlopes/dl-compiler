@@ -8,7 +8,8 @@ PYTHONPATH=src python -m dl tests/inputs/prog.dl
 ```bnf
 <PROGRAM>   ::= "programa" ID <STMT> "."
 <STMT>	    ::= <BLOCK> | <DECL> | <ASSIGN> | <WRITE> | <IF> | <WHILE>
-<DECL>      ::= TYPE ID
+<DECL>      ::= TYPE ID <DECL_REST>
+<DECL_REST> ::= "," ID <DECL_REST> | ε
 <BLOCK>     ::= "inicio" <STMTS> "fim"
 <STMTS>     ::= <STMT> ";" <STMTS> | ε
 <ASSIGN>    ::= ID "=" <EXPR>

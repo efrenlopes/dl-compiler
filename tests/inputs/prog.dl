@@ -1,6 +1,7 @@
 //Programa que determina se um número lido é primo ou não
 programa primo inicio
-    inteiro num; inteiro i; booleano eh_primo; 
+    inteiro i, num;
+    booleano eh_primo; 
     
     leia(num);
     i = 2;

@@ -127,10 +127,16 @@ class Parser:
 
 
     def __decl(self):
+        match = self.__match
         type_tok = self.__move()
-        var_tok = self.__match(Tag.ID)
-        var = VarNode(var_tok)
-        return DeclNode(type_tok, var)
+        var = VarNode(match(Tag.ID))
+        decl_node = DeclNode(type_tok)
+        decl_node.add_var(var)
+        while self.lookahead.tag == Tag.COMMA:
+            match(Tag.COMMA)
+            var = VarNode(match(Tag.ID))
+            decl_node.add_var(var)
+        return decl_node
 
     def __assign(self):
         match = self.__match

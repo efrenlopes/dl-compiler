@@ -163,9 +163,12 @@ class BlockNode(StmtNode):
 
 
 class DeclNode(StmtNode):
-    def __init__(self, token: Token, var: VarNode):
+    def __init__(self, token: Token):
         super().__init__(token)
-        self.var = var
+        self.vars = []
+    
+    def add_var(self, var: VarNode):
+        self.vars.append(var)
         
     def accept(self, visitor: Visitor):
         return visitor.visit_decl_node(self)

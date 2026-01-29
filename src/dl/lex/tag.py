@@ -18,6 +18,7 @@ class Tag(Enum):
     OR = '|'
     AND = '&'
     SEMI = ';'
+    COMMA = ','
     DOT = '.'
     LPAREN = '('
     RPAREN = ')'

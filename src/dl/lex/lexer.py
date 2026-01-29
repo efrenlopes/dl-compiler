@@ -90,9 +90,6 @@ class Lexer:
             case Tag.MUL.value:
                 next_char()
                 return Token(self.line, Tag.MUL)
-            case Tag.DIV.value:
-                next_char()
-                return Token(self.line, Tag.DIV)
             case Tag.MOD.value:
                 next_char()
                 return Token(self.line, Tag.MOD)
@@ -117,6 +114,9 @@ class Lexer:
             case Tag.SEMI.value:
                 next_char()
                 return Token(self.line, Tag.SEMI)
+            case Tag.COMMA.value:
+                next_char()
+                return Token(self.line, Tag.COMMA)
             case Tag.DOT.value:
                 next_char()
                 return Token(self.line, Tag.DOT)
