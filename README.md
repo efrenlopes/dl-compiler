@@ -1,6 +1,6 @@
 ## Para rodar o projeto, entre na pasta do projeto e rode
 ```bash
-PYTHONPATH=src python -m dl tests/inputs/prog.dl
+PYTHONPATH=src python -m dlc tests/inputs/prog.dl
 ```
 
 
