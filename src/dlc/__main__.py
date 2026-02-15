@@ -40,8 +40,8 @@ if __name__ == '__main__':
     ic.plot()
 
 
-    # print('\nInterpretação do Código Intermediário')
-    # ic.interpret()
+    print('\nInterpretação do Código Intermediário')
+    ic.interpret()
 
     # #Geração de código x64
     # code = X64CodeGenerator(ic).code

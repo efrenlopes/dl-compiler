@@ -42,12 +42,12 @@ class IC(Visitor):
         Tag.GE: Operator.GE
     }
 
-    def __init__(self, ast: AST = None):
+    def __init__(self, ast: AST):
         self.__instr = []
         self.__label_map = {}
         self.__label_bb_map = {}
         self.__var_temp_map = {}
-        self.__bb_list = [BasicBlock()]
+        self.__bb_sequence = [BasicBlock()]
         ast.root.accept(self)
 
     def __iter__(self):
@@ -68,41 +68,39 @@ class IC(Visitor):
         return self.__label_bb_map[label]
 
 
+
     def add_instr(self, instr: Instr):
-        bb = self.__bb_list[-1]
+        bb = self.__bb_sequence[-1]
+        instr_prev = bb.instructions[-1] if bb.instructions else None
 
+        # 1. Decidir se precisamos trocar de bloco ANTES de processar a instrução
         if instr.op == Operator.LABEL:
-            target_bb = self.__bb_from_label(instr.result)
-            
-            # Se o bloco atual tem comandos, conecta ao novo label
-            if bb.instructions:
-                if bb.instructions[-1].op != Operator.GOTO:
-                    bb.add_successor(target_bb)
-                self.__bb_list.append(target_bb)
+            bb_new = self.__bb_from_label(instr.result)
+            # Se o bloco atual está vazio, apenas substitui (resolve o bb0 do init)
+            if not bb.instructions:
+                self.__bb_sequence[-1] = bb_new
             else:
-                # Se o atual está vazio, "fundimos" as referências
-                # Fazemos com que o placeholder que estava na lista 
-                # aponte para o mesmo objeto que o label no mapa.
-                self.__bb_list[-1] = target_bb
-            
-            target_bb.instructions.append(instr)
+                # Só conecta se o bloco anterior não terminou em GOTO
+                if instr_prev and instr_prev.op != Operator.GOTO:
+                    bb.add_successor(bb_new)
+                self.__bb_sequence.append(bb_new)
+            bb = bb_new
 
-        elif instr.op == Operator.GOTO:
-            bb.instructions.append(instr)
-            bb.add_successor(self.__bb_from_label(instr.result))
-            self.__bb_list.append(BasicBlock()) # Próximo bloco físico
+        # Se a anterior foi um salto, a instrução ATUAL (não sendo label) precisa de um novo bloco
+        elif instr_prev and instr_prev.op in (Operator.GOTO, Operator.IF, Operator.IFFALSE):
+            bb_new = BasicBlock()
+            # Se era um IF, o bloco novo é o caminho "falso" (fall-through)
+            if instr_prev.op != Operator.GOTO:
+                bb.add_successor(bb_new)
+            self.__bb_sequence.append(bb_new)
+            bb = bb_new
 
-        elif instr.op in (Operator.IF, Operator.IFFALSE):
-            bb.instructions.append(instr)
-            next_bb = BasicBlock()
-            bb.add_successor(self.__bb_from_label(instr.result))
-            bb.add_successor(next_bb)
-            self.__bb_list.append(next_bb)
+        # 2. Agora que estamos no bloco correto, processamos a instrução
+        if instr.op in (Operator.GOTO, Operator.IF, Operator.IFFALSE):
+            target_bb = self.__bb_from_label(instr.result)
+            bb.add_successor(target_bb)
 
-        else:
-            bb.instructions.append(instr)
-
-
+        bb.instructions.append(instr)
 
 
 
@@ -111,7 +109,7 @@ class IC(Visitor):
         from graphviz import Digraph
         dot = Digraph()
         dot.attr(fontname="consolas")
-        for bb in self.__bb_list:
+        for bb in self.__bb_sequence:
             code = [str(i) for i in bb]
             code.insert(0, '-----')
             code.insert(0, str(bb))
@@ -126,7 +124,7 @@ class IC(Visitor):
 
     def __str__(self):
         tac = []
-        for bb in self.__bb_list:
+        for bb in self.__bb_sequence:
             for instr in bb:
                 tac.append(str(instr))
         return '\n'.join(tac)
@@ -141,8 +139,8 @@ class IC(Visitor):
 
 
     def visit_program_node(self, node: ProgramNode):
-        #L0 = Label()
-        #self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, L0))
+        L0 = Label()
+        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, L0))
         node.stmt.accept(self)
     
 
@@ -185,9 +183,6 @@ class IC(Visitor):
 
 
     def visit_binary_node(self, node: BinaryNode):
-        arg1 = node.expr1.accept(self)
-        arg2 = node.expr2.accept(self)
-        temp = Temp(node.type)
         EMPTY = Operand.EMPTY
         
         if node.token.tag == Tag.OR:
@@ -195,8 +190,12 @@ class IC(Visitor):
             lbl_true = Label()
             lbl_false = Label()
             lbl_end = Label()
+            temp = Temp(Type.BOOL)
+
             #tests
+            arg1 = node.expr1.accept(self)
             self.add_instr(Instr(Operator.IF, arg1, EMPTY, lbl_true))
+            arg2 = node.expr2.accept(self)
             self.add_instr(Instr(Operator.IF, arg2, EMPTY, lbl_true))
             self.add_instr(Instr(Operator.GOTO, EMPTY, EMPTY, lbl_false))
             #true
@@ -216,8 +215,12 @@ class IC(Visitor):
             lbl_false = Label()
             lbl_true = Label()
             lbl_end = Label()
+            temp = Temp(Type.BOOL)
+
             #tests
+            arg1 = node.expr1.accept(self)
             self.add_instr(Instr(Operator.IFFALSE, arg1, EMPTY, lbl_false))
+            arg2 = node.expr2.accept(self)
             self.add_instr(Instr(Operator.IFFALSE, arg2, EMPTY, lbl_false))
                 #self.add_instr(Instr(Operator.GOTO, EMPTY, EMPTY, lbl_true))
             #true
@@ -231,7 +234,9 @@ class IC(Visitor):
             #end
             self.add_instr(Instr(Operator.LABEL, EMPTY, EMPTY, lbl_end))            
         else:
-              
+            arg1 = node.expr1.accept(self)
+            arg2 = node.expr2.accept(self)
+            temp = Temp(node.type)              
             self.add_instr(Instr(IC.__OP_MAP[node.operator], arg1, arg2, temp))
         
         return temp
