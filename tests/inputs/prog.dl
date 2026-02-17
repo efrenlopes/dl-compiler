@@ -3,11 +3,13 @@ programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
     
-    leia(num);
+    num = 5;
     i = 2;
-    se (num <= 1)
-        eh_primo = falso
-    senao
+    se (num <= 1) inicio
+        inteiro i;
+        i = 10;
+        eh_primo = falso;
+    fim senao
         eh_primo = !falso;
 
     enquanto ( i < num & eh_primo == verdade) inicio

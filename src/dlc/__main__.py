@@ -38,6 +38,7 @@ if __name__ == '__main__':
     print("\nTAC")
     print(ic, '\n')
     print('\nInterpretação do Código Intermediário')
+    ic.plot()
     ic.interpret()
 
     #Geração de código x64

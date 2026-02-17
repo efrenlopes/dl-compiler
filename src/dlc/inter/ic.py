@@ -45,6 +45,7 @@ class IC(Visitor):
     def __init__(self, ast: AST):
         self.__var_temp_map = {}
         self.__label_bb_map = {}
+        self.__comments = {}
         self.__bb_sequence = [BasicBlock()]
         ast.root.accept(self)
 
@@ -69,7 +70,7 @@ class IC(Visitor):
 
 
 
-    def add_instr(self, instr: Instr):
+    def add_instr(self, instr: Instr, comment: str=None):
         bb = self.__bb_sequence[-1]
         instr_prev = bb.instructions[-1] if bb.instructions else None
 
@@ -101,6 +102,8 @@ class IC(Visitor):
             bb.add_successor(target_bb)
 
         bb.instructions.append(instr)
+        if comment:
+            self.__comments[instr] = comment
 
 
 
@@ -111,9 +114,7 @@ class IC(Visitor):
         dot.attr(fontname="consolas")
         for bb in self.__bb_sequence:
             code = [str(i) for i in bb]
-            code.insert(0, '-----')
-            code.insert(0, str(bb))
-            dot.node(str(bb), '\n'.join(code), shape="box")
+            dot.node(name=str(bb), label='\n'.join(code), shape="box", xlabel=str(bb))
             for s in bb.successors:
                 dot.edge(str(bb), str(s))
         dot.render('out/teste_fluxo', view=True) 
@@ -126,7 +127,11 @@ class IC(Visitor):
         tac = []
         for bb in self.__bb_sequence:
             for instr in bb:
-                tac.append(str(instr))
+                comment = self.__comments.get(instr)
+                if comment:
+                    tac.append(f'{str(instr):<20} \t\t#{comment}')
+                else:
+                    tac.append(f'{instr}')
         return '\n'.join(tac)
 
 
@@ -153,7 +158,8 @@ class IC(Visitor):
             self.__var_temp_map[(node.var.name, node.var.scope)] = temp
         
         temp = node.var.accept(self)
-        self.add_instr(Instr(Operator.MOVE, arg, Operand.EMPTY, temp))
+        comment = f'var {node.var.name} [scope={node.var.scope}]'
+        self.add_instr(Instr(Operator.MOVE, arg, Operand.EMPTY, temp), comment)
 
 
     def visit_var_node(self, node: VarNode):

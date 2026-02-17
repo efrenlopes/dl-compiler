@@ -22,9 +22,9 @@ class Temp(Operand):
     __count = -1
     
     def __init__(self, type: Type):
-        self.type = type
         Temp.__count = Temp.__count + 1
         self.number = Temp.__count
+        self.type = type
     
     @property
     def name(self):
