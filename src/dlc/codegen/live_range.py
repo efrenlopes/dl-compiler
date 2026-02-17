@@ -1,5 +1,4 @@
 from dlc.inter.ic import IC
-from dlc.inter.operator import Operator
 
 class LiveRange:
     def __init__(self):
