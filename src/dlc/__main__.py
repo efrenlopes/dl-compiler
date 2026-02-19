@@ -41,7 +41,7 @@ if __name__ == '__main__':
     print('\n**** Interpretação do TAC ****')
     ic.interpret()    
 
-
+    #Otimização
     optimize(ic)
     print("\n\n\n**** TAC otimizado ****")
     print(ic, '\n')
