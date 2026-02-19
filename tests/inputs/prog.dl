@@ -3,13 +3,16 @@ programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
     
-    num = 5;
+    real raio, area;
+    raio = 5;
+    area = 3.1415 * raio * raio;
+    
+    num = 5 + 6;
+    num = num - 7;
     i = 2;
-    se (num <= 1) inicio
-        inteiro i;
-        i = 10;
-        eh_primo = falso;
-    fim senao
+    se (num <= 1)
+        eh_primo = falso
+    senao
         eh_primo = !falso;
 
     enquanto ( i < num & eh_primo == verdade) inicio
@@ -17,7 +20,9 @@ programa primo inicio
             eh_primo = falso;
         i = i + +1;
     fim;
-
+    escreva(eh_primo);
+    escreva(area);
+    
     i = 2;
     enquanto (i < 1000) inicio
         i = i^2;

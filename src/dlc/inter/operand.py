@@ -28,7 +28,7 @@ class Temp(Operand):
     
     @property
     def name(self):
-        return f'%{self.number}'
+        return f't{self.number}'
     
     @property
     def is_temp(self):
@@ -38,7 +38,7 @@ class Temp(Operand):
         return self.name
     
     def __repr__(self):
-        return f'<ic_temp: {str(self)}>'
+        return f'<ic_temp: {self.name}>'
 
 
 

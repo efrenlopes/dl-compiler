@@ -117,6 +117,8 @@ class IC(Visitor):
             dot.node(name=str(bb), label='\n'.join(code), shape="box", xlabel=str(bb))
             for s in bb.successors:
                 dot.edge(str(bb), str(s))
+            #for s in bb.predecessors:
+            #    dot.edge(str(bb), str(s), color="red")
         dot.render('out/teste_fluxo', view=True) 
 
 
@@ -126,18 +128,17 @@ class IC(Visitor):
     def __str__(self):
         tac = []
         for bb in self.bb_sequence:
+            tac.append(str(bb))
             for instr in bb:
                 comment = self.__comments.get(instr)
                 if comment:
-                    tac.append(f'{str(instr):<20} \t\t#{comment}')
+                    tac.append(f'   {str(instr):<20} \t\t#{comment}')
                 else:
-                    tac.append(f'{instr}')
+                    tac.append(f'   {instr}')
         return '\n'.join(tac)
 
 
     def visit_program_node(self, node: ProgramNode):
-        L0 = Label()
-        self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, L0))
         node.stmt.accept(self)
     
 
@@ -264,7 +265,6 @@ class IC(Visitor):
         self.add_instr(Instr(Operator.IFFALSE, arg, Operand.EMPTY, lbl_out))
         #true
         node.stmt.accept(self)
-            #self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_out))
         #out
         self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_out))
 
@@ -281,7 +281,6 @@ class IC(Visitor):
         #else-stmt
         self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_else))
         node.stmt2.accept(self)
-            #self.add_instr(Instr(Operator.GOTO, Operand.EMPTY, Operand.EMPTY, lbl_out))
         #out
         self.add_instr(Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, lbl_out))
 

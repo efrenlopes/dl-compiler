@@ -1,4 +1,5 @@
 from dlc.lex.lexer import Lexer
+from dlc.opt.global_opt import optimize
 from dlc.syntax.parser import Parser
 from dlc.semantic.checker import Checker
 from dlc.inter.ic import IC
@@ -23,22 +24,28 @@ if __name__ == '__main__':
     if parser.had_errors:
         exit()
     ast = parser.ast
-    print('\nAST')
+    print('\n**** AST ****')
     print(ast, '\n')
 
     #Análise Semântica
     checker = Checker(ast)
     if checker.had_errors:
         exit()
-    print('\nAST com anotações semânticas')
+    print('\n**** AST com anotações semânticas ****')
     print(ast, '\n')
 
     #Geração de Código Intermediário
     ic = IC(ast)
-    print("\nTAC")
+    print("\n**** TAC ****")
     print(ic, '\n')
-    print('\nInterpretação do Código Intermediário')
-    ic.plot()
+    print('\n**** Interpretação do TAC ****')
+    ic.interpret()    
+
+
+    optimize(ic)
+    print("\n\n\n**** TAC otimizado ****")
+    print(ic, '\n')
+    print('\n**** Interpretação do TAC Otimizado ****')
     ic.interpret()
 
     #Geração de código x64
@@ -48,7 +55,7 @@ if __name__ == '__main__':
     file = open(file_name, 'w')
     file.write('\n'.join(code))
     file.close()
-    print('\n\nSaída do programa alvo gerado')
+    print('\n\n**** Saída do programa alvo gerado ****')
     subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
     subprocess.run(['./out/prog'], check=True)
 
