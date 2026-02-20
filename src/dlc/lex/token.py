@@ -9,8 +9,8 @@ class Token:
 
     def __str__(self):
         if self.lexeme:
-            return f"<{self.tag}, '{self.lexeme}'>"
-        return f'<{self.tag}>'
+            return f"<{self.tag.name}, '{self.lexeme}'>"
+        return f'<{self.tag.name}>'
 
     def __repr__(self):
         return f'<Token: {str(self)} at line {self.line}>'
