@@ -1,12 +1,8 @@
+from dlc.inter_ssa.ssa_ic import SSA_IC
 from dlc.lex.lexer import Lexer
-from dlc.opt.global_opt import optimize
 from dlc.syntax.parser import Parser
 from dlc.semantic.checker import Checker
-from dlc.inter.ic import IC
-from dlc.codegen.x64_codegen import X64CodeGenerator
-from pathlib import Path
 import sys
-import subprocess
 
 if __name__ == '__main__':
     #Entrada
@@ -35,29 +31,29 @@ if __name__ == '__main__':
     print(ast, '\n')
 
     #Geração de Código Intermediário
-    ic = IC(ast)
+    ic = SSA_IC(ast)
     print("\n**** TAC ****")
     print(ic, '\n')
     print('\n**** Interpretação do TAC ****')
     ic.interpret()    
 
     #Otimização
-    optimize(ic)
-    print("\n\n\n**** TAC otimizado ****")
-    print(ic, '\n')
-    print('\n**** Interpretação do TAC Otimizado ****')
-    ic.interpret()
+    # optimize(ic)
+    # print("\n\n\n**** TAC otimizado ****")
+    # print(ic, '\n')
+    # print('\n**** Interpretação do TAC Otimizado ****')
+    # ic.interpret()
 
     #Geração de código x64
-    code = X64CodeGenerator(ic).code
-    file_name = 'out/prog.s'
-    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-    file = open(file_name, 'w')
-    file.write('\n'.join(code))
-    file.close()
-    print('\n\n**** Saída do programa alvo gerado ****')
-    subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
-    subprocess.run(['./out/prog'], check=True)
+    # code = X64CodeGenerator(ic).code
+    # file_name = 'out/prog.s'
+    # Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    # file = open(file_name, 'w')
+    # file.write('\n'.join(code))
+    # file.close()
+    # print('\n\n**** Saída do programa alvo gerado ****')
+    # subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
+    # subprocess.run(['./out/prog'], check=True)
 
     #Fim
     print('\nCompilação concluída com sucesso!')
