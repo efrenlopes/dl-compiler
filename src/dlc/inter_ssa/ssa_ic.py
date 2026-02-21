@@ -140,23 +140,27 @@ class SSA_IC(Visitor):
         
     
     def visit_decl_node(self, node: DeclNode):
-        pass
+        for var in node.vars:
+            temp = SSATemp(var.type, True)
+            key = (var.name, var.scope)
+            self.__var_temp_map[key] = temp
+            comment = f'var {var.name} [scope={var.scope}]'
+            self.add_instr( SSAInstr(SSAOperator.ALLOCA, SSAOperand.EMPTY, SSAOperand.EMPTY, temp), comment)
         
 
     def visit_assign_node(self, node: AssignNode):
         arg = node.expr.accept(self)
-
-        if (node.var.name, node.var.scope) not in self.__var_temp_map:
-            temp = SSATemp(node.var.type)
-            self.__var_temp_map[(node.var.name, node.var.scope)] = temp
-        
-        temp = node.var.accept(self)
-        comment = f'var {node.var.name} [scope={node.var.scope}]'
-        self.add_instr(SSAInstr(SSAOperator.MOVE, arg, SSAOperand.EMPTY, temp), comment)
+        key = (node.var.name, node.var.scope)
+        temp = self.__var_temp_map[key]
+        self.add_instr(SSAInstr(SSAOperator.STORE, arg, SSAOperand.EMPTY, temp))
 
 
     def visit_var_node(self, node: VarNode):
-        return self.__var_temp_map[(node.name, node.scope)]        
+        temp = SSATemp(node.type)
+        key = (node.name, node.scope)
+        var = self.__var_temp_map[key]
+        self.add_instr(SSAInstr(SSAOperator.LOAD, var, SSAOperand.EMPTY, temp))
+        return temp
 
 
 
@@ -305,10 +309,6 @@ class SSA_IC(Visitor):
         self.add_instr(SSAInstr(SSAOperator.READ, SSAOperand.EMPTY, SSAOperand.EMPTY, temp))
 
 
-    
-        
-
-
 
 
 
@@ -352,12 +352,14 @@ class SSA_IC(Visitor):
             return c_double(value).value
 
     def interpret(self):
-        vars = {}
+        mem = {}
                 
         def get_value(arg):
             if arg.is_temp:
-                return vars[arg]
-            if arg.is_const:
+                return mem[arg]
+            elif arg.is_temp_version:
+                return mem[arg.origin]
+            elif arg.is_const:
                 return arg.value
 
         bb = self.bb_sequence[0]
@@ -370,7 +372,13 @@ class SSA_IC(Visitor):
                 value2 = get_value(instr.arg2)
                 
                 match op:
-                    case SSAOperator.LABEL:
+                    case SSAOperator.ALLOCA:
+                        mem[result] = None
+                    case SSAOperator.STORE:
+                        mem[result] = value1
+                    case SSAOperator.LOAD:
+                        mem[result] = value1
+                    case SSAOperator.LABEL | SSAOperator.PHI:
                         continue
                     case SSAOperator.IF:
                         if value1:                    
@@ -398,16 +406,22 @@ class SSA_IC(Visitor):
                                     i = int(i)
                                 case Type.REAL:
                                     i = float(i)
-                            vars[result] = i
+                            mem[result] = i
                         except ValueError:
                             print('Entrada de dados inválida! Interpretação encerrada.')
                             return
                     case SSAOperator.CONVERT | SSAOperator.PLUS | SSAOperator.MINUS | SSAOperator.NOT:
-                        vars[result] = SSA_IC.operate_unary(op, value1)
+                        if result.is_temp_version:
+                            result = result.origin
+                        mem[result] = SSA_IC.operate_unary(op, value1)
                     case SSAOperator.MOVE:
-                        vars[result] = value1
+                        if result.is_temp_version:
+                            result = result.origin
+                        mem[result] = value1
                     case _:
-                        vars[result] = SSA_IC.operate(op, value1, value2)
+                        if result.is_temp_version:
+                            result = result.origin
+                        mem[result] = SSA_IC.operate(op, value1, value2)
 
 
             #TRANSIÇÃO DE BLOCOS

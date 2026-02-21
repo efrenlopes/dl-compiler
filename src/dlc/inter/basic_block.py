@@ -25,4 +25,5 @@ class BasicBlock:
         return f'bb{self.number}'
     
     def __repr__(self):
-        return f'<bb{self.number}: [{self.instructions[0]}]->[{self.instructions[-1]}]>'
+        return str(self)
+        #return f'<bb{self.number}: [{self.instructions[0]}]->[{self.instructions[-1]}]>'

@@ -1,0 +1,10 @@
+programa phi_enquanto inicio
+    inteiro i, soma;
+    i = 1;
+    soma = 0;
+    enquanto (i <= 10) inicio
+        soma = soma + i;
+        i = i + 1;
+    fim;
+    escreva(soma);
+fim.

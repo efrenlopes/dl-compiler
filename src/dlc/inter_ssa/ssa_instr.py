@@ -32,7 +32,14 @@ class SSAInstr:
             case SSAOperator.READ:
                 return f'{op} {result}'
             case SSAOperator.PHI:
-                return f'{SSAOperator.PHI}'
+                return f'{result} {SSAOperator.MOVE} {SSAOperator.PHI}({", ".join(str(p) for p in arg1.paths.values())})'
+            case SSAOperator.ALLOCA:
+                return f'{result} {SSAOperator.MOVE} {SSAOperator.ALLOCA} {result.type}'
+            case SSAOperator.STORE:
+                return f'{SSAOperator.STORE} {arg1}, {result}'
+            case SSAOperator.LOAD:
+                return f'{result} {SSAOperator.MOVE} {SSAOperator.LOAD} {arg1}'
+
             case _: 
                 return f'{result} {SSAOperator.MOVE} {arg1} {op} {arg2}'
 

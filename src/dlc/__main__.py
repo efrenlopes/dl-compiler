@@ -1,3 +1,5 @@
+from dlc.inter_ssa.sccp import SCCP, copy_propagation, dead_code_elimination, optimize_ssa
+from dlc.inter_ssa.ssa import SSA
 from dlc.inter_ssa.ssa_ic import SSA_IC
 from dlc.lex.lexer import Lexer
 from dlc.syntax.parser import Parser
@@ -35,7 +37,21 @@ if __name__ == '__main__':
     print("\n**** TAC ****")
     print(ic, '\n')
     print('\n**** Interpretação do TAC ****')
-    ic.interpret()    
+    ic.plot()
+    ic.interpret()
+
+    ssa = SSA(ic)
+    optimize_ssa(ic)
+    #copy_propagation(ic)
+    #dead_code_elimination(ic)
+    #SCCP.optimize(ic)
+
+    #ic.bb_sequence[0].instructions[1].result.number = 15
+
+    print(ic)
+    ic.interpret()
+
+    
 
     #Otimização
     # optimize(ic)

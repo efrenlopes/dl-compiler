@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dlc.inter.basic_block import BasicBlock
 from dlc.semantic.type import Type
 
 
@@ -8,6 +9,9 @@ class SSAOperand(ABC):
 
     @property
     def is_temp_version(self): return False
+
+    @property
+    def is_phi(self): return False
 
     @property
     def is_const(self): return False
@@ -46,23 +50,15 @@ class SSATemp(SSAOperand):
 
 
 class SSATempVersion(SSAOperand):
-    __version_map = {}
     
-    def __init__(self, origin:SSATemp):
+    def __init__(self, origin:SSATemp, version: int):
         self.origin = origin
         self.type = origin.type
-        if self.origin not in SSATempVersion.__version_map:
-            SSATempVersion.__version_map[self.origin] = 0
-        else:
-            SSATempVersion.__version_map[self.origin] += 1
+        self.version = version
     
     @property
-    def version(self):
-        return SSATempVersion.__version_map[self.origin]
-
-    @property
     def name(self):
-        return f't{self.number}_{self.version}'
+        return f't{self.origin.number}_{self.version}'
     
     @property
     def is_temp_version(self):
@@ -73,6 +69,30 @@ class SSATempVersion(SSAOperand):
     
     def __repr__(self):
         return f'<ic_temp_version: {self.name}>'
+
+
+
+
+class SSAPhi(SSAOperand):
+    def __init__(self):
+        # Mapeia o BasicBlock para a SSATempVersion correspondente
+        self.paths = {} 
+
+    def add_path(self, block: BasicBlock, version: SSATempVersion):
+        self.paths[block] = version
+
+    @property
+    def is_phi(self):
+        return True
+
+    def __str__(self):
+        # Formato amigável: [bb1: t1_v1, bb2: t1_v2]
+        pairs = [f"{bb}: {ver}" for bb, ver in self.paths.items()]
+        return f"[{', '.join(pairs)}]"
+
+    def __repr__(self):
+        return '<ic_phi>'
+    
 
 
 
@@ -122,6 +142,9 @@ class SSALabel(SSAOperand):
 class Empty(SSAOperand):
     def __str__(self):
         return '<ic_empty>'
-    
+
+    def __repr__(self):
+        return str(self)
+
 
 SSAOperand.EMPTY = Empty()
