@@ -5,8 +5,6 @@ from dlc.inter_ssa.ssa_operator import SSAOperator
 from dlc.inter_ssa.ssa_operand import SSAOperand, SSAPhi, SSATempVersion
 
 
-#### Pensar em como fazer todas os temporários do SSA versionados!!!!!!!
-
 class SSA:
     def __init__(self, ssa_ic: SSA_IC):
         self.ic = ssa_ic
@@ -106,14 +104,15 @@ class SSA:
         self.defsites = {}
         for bb in basic_blocks:
             for instr in bb.instructions:
-                if instr.op == SSAOperator.ALLOCA:
-                    v = instr.result
-                    self.promotable_vars.add(v)
-                    self.defsites.setdefault(v, set()).add(bb)
-                elif instr.op == SSAOperator.STORE:
+                # if instr.op == SSAOperator.ALLOCA:
+                #     v = instr.result
+                #     self.promotable_vars.add(v)
+                #     self.defsites.setdefault(v, set()).add(bb)
+                if instr.op == SSAOperator.STORE:
                     v = instr.result # O endereço onde estamos guardando
-                    if v.is_temp: # Ajuste conforme sua flag
-                        self.defsites.setdefault(v, set()).add(bb)
+                    self.promotable_vars.add(v)
+                    #if v.is_temp: # Ajuste conforme sua flag
+                    self.defsites.setdefault(v, set()).add(bb)
 
         # 2. Inserção iterada de PHIs usando a Fronteira de Dominância
         phi_map = {b: {} for b in basic_blocks}
@@ -134,8 +133,15 @@ class SSA:
 
     def rename(self):
         # Inicializa pilhas e contadores para cada variável alocada
-        self.stack = {v: [] for v in self.promotable_vars}
-        self.counters = {v: 0 for v in self.promotable_vars}
+        # self.stack = {v: [] for v in self.promotable_vars}
+        # self.counters = {v: 0 for v in self.promotable_vars}
+        self.stack = {}
+        self.counters = {}
+        for bb in self.ic.bb_sequence:
+            for instr in bb:
+                if instr.result.is_temp:
+                    self.stack[instr.result] = []
+                    self.counters[instr.result] = 0
         
         entry = self.ic.bb_sequence[0]
         self._rename_block(entry)
@@ -168,55 +174,44 @@ class SSA:
         # =========================
         new_instrs = []
         for instr in bb.instructions:
-            # Pula PHIs recém-criadas no passo 1
-            if instr.op == SSAOperator.PHI:
-                new_instrs.append(instr)
-                continue
 
-            
-            if instr.op == SSAOperator.ALLOCA:
-                continue
-
-            # -------- LOAD (t2 = load t0) --------
-            if instr.op == SSAOperator.LOAD:
-                addr = instr.arg1
-                if addr in self.promotable_vars:
-                    # Se houver algo na pilha, usamos a versão mais recente
-                    if self.stack[addr]:
-                        current_version = self.stack[addr][-1]
-                        # Transforma LOAD em MOVE (t2 = t0_v1)
-                        new_instrs.append(SSAInstr(SSAOperator.MOVE, current_version, SSAOperand.EMPTY, instr.result))
-                        continue
-
-            # -------- STORE (store t2, t0) --------
-            elif instr.op == SSAOperator.STORE:
-                addr = instr.result # Onde guardamos (o l-value)
-                if addr in self.promotable_vars:
-                    value = instr.arg1
-                    
-                    # Se o valor que estamos guardando for outra variável, pega a versão dela
-                    if value in self.promotable_vars and self.stack[value]:
-                        value = self.stack[value][-1]
-
-                    # Cria nova versão para o destino
-                    self.counters[addr] += 1
-                    new_version = SSATempVersion(addr, self.counters[addr])
-                    self.stack[addr].append(new_version)
-
-                    # Transforma STORE em MOVE (t0_v2 = valor)
-                    new_instrs.append(SSAInstr(SSAOperator.MOVE, value, SSAOperand.EMPTY, new_version))
+            new_instr = instr
+            match instr.op:
+                case SSAOperator.ALLOCA: #remove ALLOCAs
                     continue
+                case SSAOperator.LOAD | SSAOperator.STORE: #transforma LOADs/STOREs em MOVEs
+                    new_instr = SSAInstr(SSAOperator.MOVE, instr.arg1, SSAOperand.EMPTY, instr.result)
 
-            # -------- OUTRAS INSTRUÇÕES (Cálculos, IFs, etc) --------
-            # Renomeia arg1 e arg2 se forem variáveis de memória
-            if instr.arg1 in self.promotable_vars and self.stack[instr.arg1]:
-                instr.arg1 = self.stack[instr.arg1][-1]
-            if instr.arg2 in self.promotable_vars and self.stack[instr.arg2]:
-                instr.arg2 = self.stack[instr.arg2][-1]
+            # Troca os temporários por temporários versionados (importante fazer result por último)
+            if new_instr.arg1.is_temp:
+                temp = new_instr.arg1
+                if self.stack[temp]:
+                    current_version = self.stack[temp][-1]
+                    new_instr.arg1 = current_version
 
-            new_instrs.append(instr)
+            if new_instr.arg2.is_temp:
+                temp = new_instr.arg2
+                if self.stack[temp]:
+                    current_version = self.stack[temp][-1]
+                    new_instr.arg2 = current_version
+
+            if new_instr.result.is_temp:
+                temp = new_instr.result
+                self.counters[temp] += 1
+                new_version = SSATempVersion(temp, self.counters[temp])
+                self.stack[temp].append(new_version)
+                new_instr.result = new_version
+
+
+            new_instrs.append(new_instr)
 
         bb.instructions = new_instrs
+
+
+
+
+
+
 
         # =====================================
         # 3️⃣ Preencher argumentos das PHIs nos sucessores
@@ -242,7 +237,5 @@ class SSA:
         # =====================================
         # Importante: Desempilhar apenas o que foi empilhado NESTE bloco
         for instr in bb.instructions:
-            if isinstance(instr.result, SSATempVersion):
-                origin_var = instr.result.origin
-                if origin_var in self.promotable_vars:
-                    self.stack[origin_var].pop()
+            if instr.result.is_temp_version:
+                self.stack[instr.result.origin].pop()
