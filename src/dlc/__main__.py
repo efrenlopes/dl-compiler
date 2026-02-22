@@ -1,4 +1,4 @@
-from dlc.inter_ssa.sccp import SCCP, copy_propagation, dead_code_elimination, optimize_ssa
+from dlc.inter_ssa.sccp import optimize_ssa
 from dlc.inter_ssa.ssa import SSA
 from dlc.inter_ssa.ssa_ic import SSA_IC
 from dlc.lex.lexer import Lexer
@@ -34,23 +34,37 @@ if __name__ == '__main__':
 
     #Geração de Código Intermediário
     ic = SSA_IC(ast)
-    print("\n**** TAC ****")
+    #print("\n**** TAC ****")
     print(ic, '\n')
-    print('\n**** Interpretação do TAC ****')
+    #print('\n**** Interpretação do TAC ****')
     ic.plot()
     ic.interpret()
+    print('\n\n')
 
     ssa = SSA(ic)
-    #optimize_ssa(ic)
+    print(ic)
+    ic.interpret()
+    print('\n\n')
+
+
+    optimize_ssa(ic)
+    print(ic)
+    ic.plot()
+    ic.interpret()
+    print('\n\n')
+
+
     #copy_propagation(ic)
     #dead_code_elimination(ic)
     #SCCP.optimize(ic)
 
-    #ic.bb_sequence[0].instructions[1].result.number = 15
+    # print('****************')
+    # for bb in ic.bb_sequence:
+    #     for instr in bb:
+    #         print(f'{instr.op} {instr.arg1} {instr.arg2} {instr.result}' )
+    # print('****************')
 
-    print(ic)
-    ic.plot()
-    ic.interpret()
+
 
     
 

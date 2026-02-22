@@ -1,4 +1,5 @@
 from dlc.inter_ssa.ssa_ic import SSA_IC
+from dlc.inter_ssa.ssa_instr import SSAInstr
 from dlc.inter_ssa.ssa_operator import SSAOperator
 from dlc.inter_ssa.ssa_operand import SSAConst, SSAOperand
 
@@ -10,7 +11,14 @@ def optimize_ssa(ic: SSA_IC):
     while changed:
         changed = False
         changed |= copy_propagation(ic)
+
+        changed |= constant_folding(ic)
+
         changed |= dead_code_elimination(ic)
+
+        #changed |= simplify_cfg(ic)
+
+        changed |= remove_unreachable_blocks(ic)
 
 
 @staticmethod
@@ -18,23 +26,31 @@ def copy_propagation(ic: SSA_IC) -> bool:
     changed = False
     copies = {}
 
-    # 1. Identificar cópias (inclusive de constantes)
+    # 1. Identificar cópias de forma exaustiva
     for bb in ic.bb_sequence:
         for instr in bb.instructions:
             if instr.op == SSAOperator.MOVE:
-                val_original = instr.arg1
-                if val_original in copies:
-                    val_original = copies[val_original]
-                copies[instr.result] = val_original
+                target = instr.result
+                source = instr.arg1
+                # Se a fonte já é uma cópia de outra coisa, vai até a raiz
+                while source in copies:
+                    source = copies[source]
+                if target != source:
+                    copies[target] = source
 
-    # 2. Substituir usos, PROTEGENDO as PHIs
+    # 2. Substituir usos
     for bb in ic.bb_sequence:
         for instr in bb.instructions:
-            # Se for PHI, não substituímos os argumentos por literais
             if instr.op == SSAOperator.PHI:
+                # Otimização: Também podemos propagar para dentro das PHIs!
+                phi_op = instr.arg1
+                for block, version in phi_op.paths.items():
+                    if version in copies:
+                        phi_op.paths[block] = copies[version]
+                        changed = True
                 continue 
             
-            # Para as demais instruções, substituímos
+            # Substituição padrão para arg1 e arg2
             if instr.arg1 in copies:
                 instr.arg1 = copies[instr.arg1]
                 changed = True
@@ -46,191 +62,189 @@ def copy_propagation(ic: SSA_IC) -> bool:
 
 
 
+
+
 @staticmethod
-def dead_code_elimination(ic: SSA_IC) -> bool:
+def constant_folding(ic: SSA_IC) -> bool:
     changed = False
-    use_count = {}
 
-    # 1. Contagem rigorosa de todos os usos
-    for bb in ic.bb_sequence:
-        for instr in bb.instructions:
-            # Usos em argumentos normais
-            for op in [instr.arg1, instr.arg2]:
-                if op and (op.is_temp or op.is_temp_version):
-                    use_count[op] = use_count.get(op, 0) + 1
-            
-            # Usos dentro de PHIs (isso salva as definições de variáveis)
-            if instr.op == SSAOperator.PHI:
-                phi_op = instr.arg1
-                for version in phi_op.paths.values():
-                    if version and version.is_temp_version:
-                        use_count[version] = use_count.get(version, 0) + 1
-
-    # 2. Remoção de instruções inúteis
     for bb in ic.bb_sequence:
         new_instrs = []
         for instr in bb.instructions:
-            # Instruções com efeitos colaterais ou controle de fluxo NUNCA saem
-            if instr.op in [SSAOperator.PRINT, SSAOperator.IF, SSAOperator.IFFALSE, 
-                            SSAOperator.GOTO, SSAOperator.STORE]:
-                new_instrs.append(instr)
-                continue
-            
-            # Se a instrução gera um resultado que ninguém usa, ela morre
-            if instr.result and (instr.result.is_temp or instr.result.is_temp_version):
-                if use_count.get(instr.result, 0) == 0:
+            # 1. Verificar se é uma operação binária onde ambos os argumentos são constantes
+            # (Assumindo que seus operandos tenham algo como .is_constant ou .value)
+            if instr.op in SSA_IC.OPS and instr.arg1.is_const and instr.arg2.is_const:
+                try:
+                    # 2. Calcular o resultado em tempo de compilação
+                    val1 = instr.arg1.value
+                    val2 = instr.arg2.value
+                    result_value = SSA_IC.OPS[instr.op](val1, val2)
+
+                    # 3. Transformar a instrução complexa em um MOVE constante
+                    # Ex: t3_1 = 5 * 2  ==>  t3_1 = 10
+                    instr.op = SSAOperator.MOVE
+                    instr.arg1 = SSAConst(instr.result.type, result_value)
+                    instr.arg2 = SSAOperand.EMPTY
+                    
                     changed = True
-                    continue 
+                except ZeroDivisionError:
+                    # Se houver divisão por zero, deixamos para o tempo de execução 
+                    # ou emitimos um aviso.
+                    pass
             
+            # Dentro do loop de instruções do constant_folding:
+            elif instr.op == SSAOperator.IF and instr.arg1.is_const:
+                condicao = instr.arg1.value is True
+                # Se a condição for verdadeira, vai para o primeiro destino (L1)
+                # Se for falsa, vai para o segundo (L2)
+                destino = instr.arg2 if condicao else instr.result
+                
+                instr.op = SSAOperator.GOTO
+                instr.arg1 = SSAOperand.EMPTY
+                instr.arg2 = SSAOperand.EMPTY
+                instr.result = destino
+                changed = True
+
+
             new_instrs.append(instr)
-        
         bb.instructions = new_instrs
 
     return changed
 
 
 
-class SCCP:
-    # Estados do Lattice
-    TOP = 0       # Ainda não visitado
-    CONSTANT = 1  # Valor constante conhecido
-    BOTTOM = 2    # Não é constante (Varying)
 
-    @staticmethod
-    def optimize(ic: SSA_IC) -> bool:
-        lattice = {}  # {SSAOperand: (status, value)}
-        executable_blocks = set()
-        ssa_worklist = []
-        flow_worklist = [ic.bb_sequence[0]]
-        
-        changed_anything = False
 
-        # --- Mapeamentos auxiliares ---
-        instr_to_bb = {}
-        uses = {}
-        for bb in ic.bb_sequence:
-            for instr in bb.instructions:
-                instr_to_bb[instr] = bb
-                # Mapeia quais instruções usam cada operando (para a worklist SSA)
-                for op in [instr.arg1, instr.arg2]:
-                    if op and op.is_temp_version:
-                        uses.setdefault(op, []).append(instr)
+@staticmethod
+def dead_code_elimination(ic: SSA_IC) -> bool:
+    changed = False
+    use_count = {}
 
-        def get_lattice(op):
-            if op is None or op == "" or op == SSAOperand.EMPTY: return (SCCP.TOP, None)
-            if op.is_const: return (SCCP.CONSTANT, op.value)
-            if not op.is_temp_version: return (SCCP.BOTTOM, None)
-            return lattice.get(op, (SCCP.TOP, None))
+    # 1. Contagem rigorosa
+    for bb in ic.bb_sequence:
+        for instr in bb.instructions:
+            # PHIs são usos
+            if instr.op == SSAOperator.PHI:
+                for version in instr.arg1.paths.values():
+                    use_count[version] = use_count.get(version, 0) + 1
+            else:
+                # IMPORTANTÍSSIMO: Contar usos em arg1 e arg2 de QUALQUER instrução
+                # Isso inclui o argumento do IF, do PRINT e de operações matemáticas
+                for op in (instr.arg1, instr.arg2):
+                    if hasattr(op, 'is_temp_version') and op.is_temp_version:
+                        use_count[op] = use_count.get(op, 0) + 1
 
-        def set_lattice(op, status, value=None):
-            if not op or not op.is_temp_version: return False
-            prev_status, prev_val = get_lattice(op)
-            if (prev_status, prev_val) != (status, value):
-                lattice[op] = (status, value)
-                return True
-            return False
-
-        # --- LOOP DE ANÁLISE (SIMULAÇÃO) ---
-        while flow_worklist or ssa_worklist:
-            # 1. Processar novos caminhos de fluxo (Blocos Básicos)
-            if flow_worklist:
-                bb = flow_worklist.pop(0)
-                if bb not in executable_blocks:
-                    executable_blocks.add(bb)
-                    # Ao ativar um bloco, todas as suas instruções entram na fila
-                    ssa_worklist.extend(bb.instructions)
-
-            # 2. Processar instruções (Fluxo de Dados)
-            if ssa_worklist:
-                instr = ssa_worklist.pop(0)
-                bb_atual = instr_to_bb.get(instr)
-                if bb_atual not in executable_blocks:
-                    continue
-
-                status_changed = False
-                
-                # Operador MOVE (Essencial para propagar t0_1 -> t2)
-                if instr.op == SSAOperator.MOVE:
-                    st, val = get_lattice(instr.arg1)
-                    status_changed = set_lattice(instr.result, st, val)
-
-                # Operadores Aritméticos e Lógicos (Onde ocorre o FOLDING)
-                elif instr.op in [SSAOperator.SUM, SSAOperator.SUB, SSAOperator.MUL, 
-                                 SSAOperator.DIV, SSAOperator.EQ, SSAOperator.NE,
-                                 SSAOperator.LT, SSAOperator.GT, SSAOperator.LE, SSAOperator.GE]:
-                    st1, v1 = get_lattice(instr.arg1)
-                    st2, v2 = get_lattice(instr.arg2)
-                    
-                    if st1 == SCCP.BOTTOM or st2 == SCCP.BOTTOM:
-                        status_changed = set_lattice(instr.result, SCCP.BOTTOM)
-                    elif st1 == SCCP.CONSTANT and st2 == SCCP.CONSTANT:
-                        # Executa a operação em tempo de compilação
-                        res_val = ic.operate(instr.op, v1, v2)
-                        status_changed = set_lattice(instr.result, SCCP.CONSTANT, res_val)
-                
-                # Funções PHI
-                elif instr.op == SSAOperator.PHI:
-                    phi_op = instr.arg1
-                    current_status, current_val = SCCP.TOP, None
-                    
-                    for pred_bb, version in phi_op.paths.items():
-                        # Só considera valores de arestas que o fluxo já provou serem executáveis
-                        if pred_bb in executable_blocks:
-                            st, val = get_lattice(version)
-                            if st == SCCP.BOTTOM:
-                                current_status = SCCP.BOTTOM
-                                break
-                            elif st == SCCP.CONSTANT:
-                                if current_status == SCCP.TOP:
-                                    current_status, current_val = st, val
-                                elif current_val != val:
-                                    current_status = SCCP.BOTTOM
-                                    break
-                    status_changed = set_lattice(instr.result, current_status, current_val)
-
-                # Controle de Fluxo (Decide quais próximos blocos ativar)
-                elif instr.op in [SSAOperator.IF, SSAOperator.IFFALSE, SSAOperator.GOTO]:
-                    if instr.op == SSAOperator.GOTO:
-                        flow_worklist.extend(bb_atual.successors)
-                    else:
-                        st, val = get_lattice(instr.arg1)
-                        if st == SCCP.CONSTANT:
-                            # Aqui você poderia ativar apenas o sucessor True ou False
-                            # Para segurança, ativamos todos, mas a PHI filtrará pelo lattice
-                            flow_worklist.extend(bb_atual.successors)
-                        elif st == SCCP.BOTTOM:
-                            flow_worklist.extend(bb_atual.successors)
-
-                # Se o valor do resultado mudou, re-adiciona quem usa ele na fila
-                if status_changed:
-                    for user_instr in uses.get(instr.result, []):
-                        if user_instr not in ssa_worklist:
-                            ssa_worklist.append(user_instr)
-
-        # --- FASE DE SUBSTITUIÇÃO (TRANSFORMAÇÃO REAL) ---
-        for bb in ic.bb_sequence:
-            if bb not in executable_blocks:
-                bb.instructions = [] # Opcional: Remove blocos mortos
+    # 2. Remoção
+    for bb in ic.bb_sequence:
+        new_instrs = []
+        for instr in bb.instructions:
+            # Nunca apagar instruções que têm efeitos colaterais ou controle de fluxo
+            # mesmo que o 'result' delas seja vago.
+            if instr.op in (SSAOperator.PRINT, SSAOperator.IF, SSAOperator.GOTO, SSAOperator.LABEL):
+                new_instrs.append(instr)
                 continue
 
-            for instr in bb.instructions:
-                # 1. Substitui argumentos por constantes conhecidas
-                for attr in ['arg1', 'arg2']:
-                    op = getattr(instr, attr)
-                    if op and op.is_temp_version:
-                        st, val = get_lattice(op)
-                        if st == SCCP.CONSTANT:
-                            setattr(instr, attr, SSAConst(op.type, val))
-                            changed_anything = True
-                
-                # 2. Se a instrução resultou em uma constante, simplifica para um MOVE
-                # (Ignoramos PHI aqui pois elas são resolvidas na substituição de argumentos)
-                if instr.op not in [SSAOperator.PHI, SSAOperator.MOVE, SSAOperator.PRINT]:
-                    st, val = get_lattice(instr.result)
-                    if st == SCCP.CONSTANT:
-                        instr.op = SSAOperator.MOVE
-                        instr.arg1 = SSAConst(instr.result.type, val)
-                        instr.arg2 = None
-                        changed_anything = True
+            # Se a instrução gera um resultado e ninguém usa...
+            res = instr.result
+            if res and hasattr(res, 'is_temp_version') and res.is_temp_version:
+                if use_count.get(res, 0) == 0:
+                    changed = True
+                    continue # Deleta
+            
+            new_instrs.append(instr)
+        bb.instructions = new_instrs
+    return changed
 
-        return changed_anything
+
+
+
+@staticmethod
+def remove_unreachable_blocks(ic: SSA_IC) -> bool:
+    # 1. Identificar blocos alcançáveis a partir do entry (BFS ou DFS)
+    reachable = set()
+    stack = [ic.bb_sequence[0]]
+    while stack:
+        curr = stack.pop()
+        if curr not in reachable:
+            reachable.add(curr)
+            stack.extend(curr.successors)
+
+    # 2. Filtrar a sequência de blocos
+    if len(reachable) == len(ic.bb_sequence):
+        return False
+
+    original_count = len(ic.bb_sequence)
+    ic.bb_sequence = [bb for bb in ic.bb_sequence if bb in reachable]
+    
+    # 3. Limpar as referências de predecessores nos blocos que ficaram
+    for bb in ic.bb_sequence:
+        bb.predecessors = [p for p in bb.predecessors if p in reachable]
+        
+    return len(ic.bb_sequence) < original_count
+
+
+
+@staticmethod
+def simplify_cfg(ic: SSA_IC) -> bool:
+    changed = False
+    for bb in ic.bb_sequence:
+        # Verifica se o bloco é apenas um Label + Goto
+        # (Ajuste o índice conforme sua estrutura de label)
+        instrs = [i for i in bb.instructions if i.op != SSAOperator.LABEL]
+        
+        if len(instrs) == 1 and instrs[0].op == SSAOperator.GOTO:
+            target_label = instrs[0].result # Destino do goto
+            target_bb = next(b for b in ic.bb_sequence if ic.bb_from_label(label == target_label))
+            
+            if target_bb == bb: continue # Evita loop infinito em si mesmo
+
+            # Redirecionar todos os predecessores de 'bb' para 'target_bb'
+            for pred in bb.predecessors[:]:
+                last_instr = pred.instructions[-1]
+                
+                # Se o predecessor era um GOTO ou IF, atualizamos o destino
+                if last_instr.op == SSAOperator.GOTO:
+                    last_instr.result = target_label
+                elif last_instr.op == SSAOperator.IF:
+                    if last_instr.arg2 == bb.label: last_instr.arg2 = target_label
+                    if last_instr.result == bb.label: last_instr.result = target_label
+                
+                # Atualiza os links de sucessores/predecessores no grafo
+                pred.successors.remove(bb)
+                pred.successors.append(target_bb)
+                target_bb.predecessors.append(pred)
+                bb.predecessors.remove(pred)
+                changed = True
+    return changed
+
+
+@staticmethod
+def phi_pruning(ic: SSA_IC) -> bool:
+    changed = False
+    for bb in ic.bb_sequence:
+        new_instrs = []
+        for instr in bb.instructions:
+            if instr.op == SSAOperator.PHI:
+                phi_op = instr.arg1
+                # Remove caminhos de blocos que não existem mais no CFG
+                # (Importante caso você tenha removido blocos inalcançáveis)
+                valid_paths = {b: v for b, v in phi_op.paths.items() if b in bb.predecessors}
+                phi_op.paths = valid_paths
+
+                # Se a PHI tem apenas 1 caminho, ela vira um MOVE
+                if len(valid_paths) == 1:
+                    val = list(valid_paths.values())[0]
+                    instr.op = SSAOperator.MOVE
+                    instr.arg1 = val
+                    changed = True
+                
+                # Se todos os caminhos levam ao mesmo valor, vira um MOVE
+                elif len(set(valid_paths.values())) == 1:
+                    val = list(valid_paths.values())[0]
+                    instr.op = SSAOperator.MOVE
+                    instr.arg1 = val
+                    changed = True
+
+            new_instrs.append(instr)
+        bb.instructions = new_instrs
+    return changed

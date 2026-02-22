@@ -5,7 +5,6 @@ class SSAOperator(Enum):
     LABEL = 'label'
     GOTO = 'goto'
     IF = 'if'
-    IFFALSE = 'iffalse'
     PRINT = 'print'
     READ = 'read'
     CONVERT = 'convert'

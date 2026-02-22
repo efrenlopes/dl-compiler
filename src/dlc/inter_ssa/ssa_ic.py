@@ -63,7 +63,7 @@ class SSA_IC(Visitor):
                 yield instr
     
 
-    def __bb_from_label(self, label):
+    def bb_from_label(self, label):
         if label not in self.__label_bb_map:
             self.__label_bb_map[label] = BasicBlock()
         return self.__label_bb_map[label]
@@ -72,61 +72,23 @@ class SSA_IC(Visitor):
     def add_instr(self, instr: SSAInstr, comment: str=None):
         match instr.op:
             case SSAOperator.LABEL:
-                new_bb = self.__bb_from_label(instr.result)
+                new_bb = self.bb_from_label(instr.result)
                 self.bb_sequence.append(new_bb)
                 self.__bb_current = new_bb
 
             case SSAOperator.GOTO:
-                bb_target = self.__bb_from_label(instr.result)
+                bb_target = self.bb_from_label(instr.result)
                 self.__bb_current.add_successor(bb_target)
             
-            case SSAOperator.IF | SSAOperator.IFFALSE:
-                bb_target = self.__bb_from_label(instr.arg2)
-                bb_fall = self.__bb_from_label(instr.result)
+            case SSAOperator.IF:
+                bb_target = self.bb_from_label(instr.arg2)
+                bb_fall = self.bb_from_label(instr.result)
                 self.__bb_current.add_successor(bb_target)
                 self.__bb_current.add_successor(bb_fall)
 
         self.__bb_current.instructions.append(instr)
         if comment:
             self.__comments[instr] = comment
-
-
-
-    # def add_instr(self, instr: SSAInstr, comment: str=None):
-    #     bb = self.bb_sequence[-1]
-    #     instr_prev = bb.instructions[-1] if bb.instructions else None
-
-    #     # 1. Decidir se precisamos trocar de bloco ANTES de processar a instrução
-    #     if instr.op == SSAOperator.LABEL:
-    #         bb_new = self.__bb_from_label(instr.result)
-    #         # Se o bloco atual está vazio, apenas substitui (resolve o bb0 do init)
-    #         if not bb.instructions:
-    #             self.bb_sequence[-1] = bb_new
-    #         else:
-    #             # Só conecta se o bloco anterior não terminou em GOTO
-    #             if instr_prev and instr_prev.op != SSAOperator.GOTO:
-    #                 bb.add_successor(bb_new)
-    #             self.bb_sequence.append(bb_new)
-    #         bb = bb_new
-
-    #     # Se a anterior foi um salto, a instrução ATUAL (não sendo label) precisa de um novo bloco
-    #     elif instr_prev and instr_prev.op in (SSAOperator.GOTO, SSAOperator.IF, SSAOperator.IFFALSE):
-    #         bb_new = BasicBlock()
-    #         # Se era um IF, o bloco novo é o caminho "falso" (fall-through)
-    #         if instr_prev.op != SSAOperator.GOTO:
-    #             bb.add_successor(bb_new)
-    #         self.bb_sequence.append(bb_new)
-    #         bb = bb_new
-
-    #     # 2. Agora que estamos no bloco correto, processamos a instrução
-    #     if instr.op in (SSAOperator.GOTO, SSAOperator.IF, SSAOperator.IFFALSE):
-    #         target_bb = self.__bb_from_label(instr.result)
-    #         bb.add_successor(target_bb)
-
-    #     bb.instructions.append(instr)
-    #     if comment:
-    #         self.__comments[instr] = comment
-
 
 
 
@@ -350,10 +312,10 @@ class SSA_IC(Visitor):
 
 
     def visit_read_node(self, node: ReadNode):
-        if (node.var.name, node.var.scope) not in self.__var_temp_map:
-            temp = SSATemp(node.var.type)
-            self.__var_temp_map[(node.var.name, node.var.scope)] = temp
-        temp = node.var.accept(self)
+        #if (node.var.name, node.var.scope) not in self.__var_temp_map:
+        #    temp = SSATemp(node.var.type)
+        #    self.__var_temp_map[(node.var.name, node.var.scope)] = temp
+        temp = self.__var_temp_map[(node.var.name, node.var.scope)]
         self.add_instr(SSAInstr(SSAOperator.READ, SSAOperand.EMPTY, SSAOperand.EMPTY, temp))
 
 
@@ -401,18 +363,19 @@ class SSA_IC(Visitor):
 
     def interpret(self):
         mem = {}
-                
+        #reg = {}
+
+
         def get_value(arg):
-            if arg.is_temp:
-                return mem[arg]
-            elif arg.is_temp_version:
-                return mem[arg.origin]
+            if arg.is_temp or arg.is_temp_version:
+                return mem.get(arg)
             elif arg.is_const:
                 return arg.value
 
+        bb_prev = None
         bb = self.bb_sequence[0]
         while bb:
-            next_bb = None
+            bb_next = None
             for instr in bb:
                 op = instr.op
                 result = instr.result
@@ -420,29 +383,24 @@ class SSA_IC(Visitor):
                 value2 = get_value(instr.arg2)
                 
                 match op:
+                    case SSAOperator.PHI:
+                        value = get_value( instr.arg1.paths[bb_prev] )
+                        mem[result] = value
                     case SSAOperator.ALLOCA:
                         mem[result] = None
                     case SSAOperator.STORE:
                         mem[result] = value1
                     case SSAOperator.LOAD:
-                        mem[result] = value1
-                    case SSAOperator.LABEL | SSAOperator.PHI:
+                        mem[result] = mem[instr.arg1]
+                    case SSAOperator.LABEL:
                         continue
                     case SSAOperator.IF:
                         if value1:                    
-                            next_bb = self.__bb_from_label(instr.arg2)
-                            break
-                        next_bb = self.__bb_from_label(instr.result)
-                        break
-                    case SSAOperator.IFFALSE:
-                        if not value1:
-                            next_bb = self.__bb_from_label(instr.arg2)
-                            break
-                        next_bb = self.__bb_from_label(instr.result)
-                        break
+                            bb_next = self.bb_from_label(instr.arg2)
+                        else:
+                            bb_next = self.bb_from_label(instr.result)
                     case SSAOperator.GOTO:
-                        next_bb = self.__bb_from_label(result)
-                        break
+                        bb_next = self.bb_from_label(result)
                     case SSAOperator.PRINT:
                         if isinstance(value1, float):
                             print(f'output: {value1:.4f}')
@@ -463,26 +421,13 @@ class SSA_IC(Visitor):
                             print('Entrada de dados inválida! Interpretação encerrada.')
                             return
                     case SSAOperator.CONVERT | SSAOperator.PLUS | SSAOperator.MINUS | SSAOperator.NOT:
-                        if result.is_temp_version:
-                            result = result.origin
                         mem[result] = SSA_IC.operate_unary(op, value1)
                     case SSAOperator.MOVE:
-                        if result.is_temp_version:
-                            result = result.origin
                         mem[result] = value1
                     case _:
-                        if result.is_temp_version:
-                            result = result.origin
                         mem[result] = SSA_IC.operate(op, value1, value2)
 
 
             #TRANSIÇÃO DE BLOCOS
-            if next_bb:
-                bb = next_bb
-            else:
-                if not bb.successors:
-                    bb = None # Fim do programa
-                elif len(bb.successors) == 1:
-                    bb = bb.successors[0]
-                else:
-                    bb = bb.successors[-1]
+            bb_prev = bb
+            bb = bb_next

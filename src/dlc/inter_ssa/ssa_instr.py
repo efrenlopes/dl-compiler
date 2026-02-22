@@ -21,7 +21,7 @@ class SSAInstr:
                 return f'{result} {op} {arg1}'
             case SSAOperator.LABEL: 
                 return f'{result}:'
-            case SSAOperator.IF | SSAOperator.IFFALSE: 
+            case SSAOperator.IF:
                 return f'{op} {arg1} {SSAOperator.GOTO} {arg2} else {SSAOperator.GOTO} {result}'
             case SSAOperator.GOTO: 
                 return f'{op} {result}'
@@ -32,7 +32,7 @@ class SSAInstr:
             case SSAOperator.READ:
                 return f'{op} {result}'
             case SSAOperator.PHI:
-                return f'{result} {SSAOperator.MOVE} {SSAOperator.PHI}({", ".join(str(p) for p in arg1.paths.values())})'
+                return f'{result} {SSAOperator.MOVE} {SSAOperator.PHI}({", ".join(f"{bb}: {ver}" for bb, ver in arg1.paths.items())})'
             case SSAOperator.ALLOCA:
                 return f'{result} {SSAOperator.MOVE} {SSAOperator.ALLOCA} {result.type}'
             case SSAOperator.STORE:

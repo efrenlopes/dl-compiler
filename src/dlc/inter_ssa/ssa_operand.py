@@ -78,8 +78,8 @@ class SSAPhi(SSAOperand):
         # BasicBlock para SSATempVersion
         self.paths = {} 
 
-    def add_path(self, block: BasicBlock, version: SSATempVersion):
-        self.paths[block] = version
+    def add_path(self, block: BasicBlock, value: SSAOperand):
+        self.paths[block] = value
 
     @property
     def is_phi(self):
