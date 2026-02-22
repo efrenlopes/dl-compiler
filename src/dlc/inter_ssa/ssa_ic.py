@@ -131,6 +131,9 @@ class SSA_IC(Visitor):
 
 
     def visit_program_node(self, node: ProgramNode):
+        entry = SSALabel()
+        self.__bb_from_label(entry)
+        self.add_instr( SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, entry ))
         node.stmt.accept(self)
     
 
@@ -181,51 +184,59 @@ class SSA_IC(Visitor):
         
         if node.token.tag == Tag.OR:
             #labels
+            lbl_test_b = SSALabel()
             lbl_true = SSALabel()
             lbl_false = SSALabel()
-            lbl_end = SSALabel()
+            lbl_out = SSALabel()
             temp = SSATemp(Type.BOOL)
 
-            #tests
+            #Test-A
             arg1 = node.expr1.accept(self)
             self.add_instr(SSAInstr(SSAOperator.IF, arg1, EMPTY, lbl_true))
+            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_test_b))
+            #Test-B
+            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_test_b))
+            arg2 = node.expr2.accept(self)
+            self.add_instr(SSAInstr(SSAOperator.IF, arg2, EMPTY, lbl_true))
+            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
+            #Block-True
+            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
+            self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, True), EMPTY, temp))
+            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
+            #Block-False
+            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_false))
+            self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, False), EMPTY, temp))
+            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
+            #Out
+            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_out))
+        
+        elif node.token.tag == Tag.AND:
+            #labels
+            lbl_test_b = SSALabel()
+            lbl_false = SSALabel()
+            lbl_true = SSALabel()
+            lbl_out = SSALabel()
+            temp = SSATemp(Type.BOOL)
+
+            #Test-A
+            arg1 = node.expr1.accept(self)
+            self.add_instr(SSAInstr(SSAOperator.IF, arg1, EMPTY, lbl_test_b))
+            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
+            #Test-B
+            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_test_b))
             arg2 = node.expr2.accept(self)
             self.add_instr(SSAInstr(SSAOperator.IF, arg2, EMPTY, lbl_true))
             self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
             #true
             self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
             self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, True), EMPTY, temp))
-            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_end))
+            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
             #false
             self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_false))
             self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, False), EMPTY, temp))
-            #self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_end))
+            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
             #end
-            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_end))
-        
-        elif node.token.tag == Tag.AND:
-            #labels
-            lbl_false = SSALabel()
-            lbl_true = SSALabel()
-            lbl_end = SSALabel()
-            temp = SSATemp(Type.BOOL)
-
-            #tests
-            arg1 = node.expr1.accept(self)
-            self.add_instr(SSAInstr(SSAOperator.IFFALSE, arg1, EMPTY, lbl_false))
-            arg2 = node.expr2.accept(self)
-            self.add_instr(SSAInstr(SSAOperator.IFFALSE, arg2, EMPTY, lbl_false))
-                #self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_true))
-            #true
-            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
-            self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, True), EMPTY, temp))
-            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_end))
-            #false
-            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_false))
-            self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, False), EMPTY, temp))
-                #self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_end))
-            #end
-            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_end))            
+            self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_out))
         else:
             arg1 = node.expr1.accept(self)
             arg2 = node.expr2.accept(self)
@@ -256,44 +267,61 @@ class SSA_IC(Visitor):
 
     def visit_if_node(self, node: IfNode):
         arg = node.expr.accept(self)
+        lbl_true = SSALabel()
         lbl_out = SSALabel()
-        #test
-        self.add_instr(SSAInstr(SSAOperator.IFFALSE, arg, SSAOperand.EMPTY, lbl_out))
-        #true
+        EMPTY = SSAOperand.EMPTY
+
+        #Test
+        self.add_instr(SSAInstr(SSAOperator.IF, arg, EMPTY, lbl_true))
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
+        #Block-True
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
         node.stmt.accept(self)
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
         #out
-        self.add_instr(SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, lbl_out))
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_out))
 
 
     def visit_else_node(self, node: ElseNode):
         arg = node.expr.accept(self)
-        lbl_else = SSALabel()
+        lbl_true = SSALabel()
+        lbl_false = SSALabel()
         lbl_out = SSALabel()
-        #test
-        self.add_instr(SSAInstr(SSAOperator.IFFALSE, arg, SSAOperand.EMPTY, lbl_else))
+        EMPTY = SSAOperand.EMPTY
+
+        #Test
+        self.add_instr(SSAInstr(SSAOperator.IF, arg, EMPTY, lbl_true))
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
         #if-stmt
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
         node.stmt1.accept(self)
-        self.add_instr(SSAInstr(SSAOperator.GOTO, SSAOperand.EMPTY, SSAOperand.EMPTY, lbl_out))
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
         #else-stmt
-        self.add_instr(SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, lbl_else))
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_false))
         node.stmt2.accept(self)
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
         #out
-        self.add_instr(SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, lbl_out))
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_out))
 
 
 
     def visit_while_node(self, node: WhileNode):
-        lbl_begin = SSALabel()
-        lbl_end = SSALabel()
-        #test
-        self.add_instr(SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, lbl_begin))
+        lbl_entry = SSALabel()
+        lbl_body = SSALabel()
+        lbl_exit = SSALabel()
+        EMPTY = SSAOperand.EMPTY
+        #Test
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_entry))
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_entry))
         arg = node.expr.accept(self)
-        self.add_instr(SSAInstr(SSAOperator.IFFALSE, arg, SSAOperand.EMPTY, lbl_end))
+        self.add_instr(SSAInstr(SSAOperator.IF, arg, EMPTY, lbl_body))
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_exit))
         #true
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_body))
         node.stmt.accept(self)
-        self.add_instr(SSAInstr(SSAOperator.GOTO, SSAOperand.EMPTY, SSAOperand.EMPTY, lbl_begin))
+        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_entry))
         #end
-        self.add_instr(SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, lbl_end))
+        self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_exit))
 
     
     def visit_write_node(self, node: WriteNode):
