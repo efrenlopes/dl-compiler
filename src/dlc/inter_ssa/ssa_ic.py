@@ -46,8 +46,16 @@ class SSA_IC(Visitor):
         self.__var_temp_map = {}
         self.__label_bb_map = {}
         self.__comments = {}
-        self.bb_sequence = [BasicBlock()]
+
+        L0 = SSALabel()
+        self.bb_entry = BasicBlock()
+        self.__label_bb_map[L0] = self.bb_entry
+        self.__bb_current = self.bb_entry
+        self.bb_sequence = []
+        self.add_instr( SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, L0 ))
+        
         ast.root.accept(self)
+
 
     def __iter__(self):
         for bb in self.bb_sequence:
@@ -61,41 +69,63 @@ class SSA_IC(Visitor):
         return self.__label_bb_map[label]
 
 
-
     def add_instr(self, instr: SSAInstr, comment: str=None):
-        bb = self.bb_sequence[-1]
-        instr_prev = bb.instructions[-1] if bb.instructions else None
+        match instr.op:
+            case SSAOperator.LABEL:
+                new_bb = self.__bb_from_label(instr.result)
+                self.bb_sequence.append(new_bb)
+                self.__bb_current = new_bb
 
-        # 1. Decidir se precisamos trocar de bloco ANTES de processar a instrução
-        if instr.op == SSAOperator.LABEL:
-            bb_new = self.__bb_from_label(instr.result)
-            # Se o bloco atual está vazio, apenas substitui (resolve o bb0 do init)
-            if not bb.instructions:
-                self.bb_sequence[-1] = bb_new
-            else:
-                # Só conecta se o bloco anterior não terminou em GOTO
-                if instr_prev and instr_prev.op != SSAOperator.GOTO:
-                    bb.add_successor(bb_new)
-                self.bb_sequence.append(bb_new)
-            bb = bb_new
+            case SSAOperator.GOTO:
+                bb_target = self.__bb_from_label(instr.result)
+                self.__bb_current.add_successor(bb_target)
+            
+            case SSAOperator.IF | SSAOperator.IFFALSE:
+                bb_target = self.__bb_from_label(instr.arg2)
+                bb_fall = self.__bb_from_label(instr.result)
+                self.__bb_current.add_successor(bb_target)
+                self.__bb_current.add_successor(bb_fall)
 
-        # Se a anterior foi um salto, a instrução ATUAL (não sendo label) precisa de um novo bloco
-        elif instr_prev and instr_prev.op in (SSAOperator.GOTO, SSAOperator.IF, SSAOperator.IFFALSE):
-            bb_new = BasicBlock()
-            # Se era um IF, o bloco novo é o caminho "falso" (fall-through)
-            if instr_prev.op != SSAOperator.GOTO:
-                bb.add_successor(bb_new)
-            self.bb_sequence.append(bb_new)
-            bb = bb_new
-
-        # 2. Agora que estamos no bloco correto, processamos a instrução
-        if instr.op in (SSAOperator.GOTO, SSAOperator.IF, SSAOperator.IFFALSE):
-            target_bb = self.__bb_from_label(instr.result)
-            bb.add_successor(target_bb)
-
-        bb.instructions.append(instr)
+        self.__bb_current.instructions.append(instr)
         if comment:
             self.__comments[instr] = comment
+
+
+
+    # def add_instr(self, instr: SSAInstr, comment: str=None):
+    #     bb = self.bb_sequence[-1]
+    #     instr_prev = bb.instructions[-1] if bb.instructions else None
+
+    #     # 1. Decidir se precisamos trocar de bloco ANTES de processar a instrução
+    #     if instr.op == SSAOperator.LABEL:
+    #         bb_new = self.__bb_from_label(instr.result)
+    #         # Se o bloco atual está vazio, apenas substitui (resolve o bb0 do init)
+    #         if not bb.instructions:
+    #             self.bb_sequence[-1] = bb_new
+    #         else:
+    #             # Só conecta se o bloco anterior não terminou em GOTO
+    #             if instr_prev and instr_prev.op != SSAOperator.GOTO:
+    #                 bb.add_successor(bb_new)
+    #             self.bb_sequence.append(bb_new)
+    #         bb = bb_new
+
+    #     # Se a anterior foi um salto, a instrução ATUAL (não sendo label) precisa de um novo bloco
+    #     elif instr_prev and instr_prev.op in (SSAOperator.GOTO, SSAOperator.IF, SSAOperator.IFFALSE):
+    #         bb_new = BasicBlock()
+    #         # Se era um IF, o bloco novo é o caminho "falso" (fall-through)
+    #         if instr_prev.op != SSAOperator.GOTO:
+    #             bb.add_successor(bb_new)
+    #         self.bb_sequence.append(bb_new)
+    #         bb = bb_new
+
+    #     # 2. Agora que estamos no bloco correto, processamos a instrução
+    #     if instr.op in (SSAOperator.GOTO, SSAOperator.IF, SSAOperator.IFFALSE):
+    #         target_bb = self.__bb_from_label(instr.result)
+    #         bb.add_successor(target_bb)
+
+    #     bb.instructions.append(instr)
+    #     if comment:
+    #         self.__comments[instr] = comment
 
 
 
@@ -131,9 +161,6 @@ class SSA_IC(Visitor):
 
 
     def visit_program_node(self, node: ProgramNode):
-        entry = SSALabel()
-        self.__bb_from_label(entry)
-        self.add_instr( SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, entry ))
         node.stmt.accept(self)
     
 
@@ -192,13 +219,11 @@ class SSA_IC(Visitor):
 
             #Test-A
             arg1 = node.expr1.accept(self)
-            self.add_instr(SSAInstr(SSAOperator.IF, arg1, EMPTY, lbl_true))
-            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_test_b))
+            self.add_instr(SSAInstr(SSAOperator.IF, arg1, lbl_true, lbl_test_b))
             #Test-B
             self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_test_b))
             arg2 = node.expr2.accept(self)
-            self.add_instr(SSAInstr(SSAOperator.IF, arg2, EMPTY, lbl_true))
-            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
+            self.add_instr(SSAInstr(SSAOperator.IF, arg2, lbl_true, lbl_false))
             #Block-True
             self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
             self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, True), EMPTY, temp))
@@ -220,13 +245,11 @@ class SSA_IC(Visitor):
 
             #Test-A
             arg1 = node.expr1.accept(self)
-            self.add_instr(SSAInstr(SSAOperator.IF, arg1, EMPTY, lbl_test_b))
-            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
+            self.add_instr(SSAInstr(SSAOperator.IF, arg1, lbl_test_b, lbl_false))
             #Test-B
             self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_test_b))
             arg2 = node.expr2.accept(self)
-            self.add_instr(SSAInstr(SSAOperator.IF, arg2, EMPTY, lbl_true))
-            self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
+            self.add_instr(SSAInstr(SSAOperator.IF, arg2, lbl_true, lbl_false))
             #true
             self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
             self.add_instr(SSAInstr(SSAOperator.MOVE, SSAConst(Type.BOOL, True), EMPTY, temp))
@@ -272,8 +295,7 @@ class SSA_IC(Visitor):
         EMPTY = SSAOperand.EMPTY
 
         #Test
-        self.add_instr(SSAInstr(SSAOperator.IF, arg, EMPTY, lbl_true))
-        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_out))
+        self.add_instr(SSAInstr(SSAOperator.IF, arg, lbl_true, lbl_out))
         #Block-True
         self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
         node.stmt.accept(self)
@@ -290,8 +312,7 @@ class SSA_IC(Visitor):
         EMPTY = SSAOperand.EMPTY
 
         #Test
-        self.add_instr(SSAInstr(SSAOperator.IF, arg, EMPTY, lbl_true))
-        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_false))
+        self.add_instr(SSAInstr(SSAOperator.IF, arg, lbl_true, lbl_false))
         #if-stmt
         self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_true))
         node.stmt1.accept(self)
@@ -314,8 +335,7 @@ class SSA_IC(Visitor):
         self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_entry))
         self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_entry))
         arg = node.expr.accept(self)
-        self.add_instr(SSAInstr(SSAOperator.IF, arg, EMPTY, lbl_body))
-        self.add_instr(SSAInstr(SSAOperator.GOTO, EMPTY, EMPTY, lbl_exit))
+        self.add_instr(SSAInstr(SSAOperator.IF, arg, lbl_body, lbl_exit))
         #true
         self.add_instr(SSAInstr(SSAOperator.LABEL, EMPTY, EMPTY, lbl_body))
         node.stmt.accept(self)
@@ -410,12 +430,16 @@ class SSA_IC(Visitor):
                         continue
                     case SSAOperator.IF:
                         if value1:                    
-                            next_bb = self.__bb_from_label(result)
+                            next_bb = self.__bb_from_label(instr.arg2)
                             break
+                        next_bb = self.__bb_from_label(instr.result)
+                        break
                     case SSAOperator.IFFALSE:
                         if not value1:
-                            next_bb =  self.__bb_from_label(result)
+                            next_bb = self.__bb_from_label(instr.arg2)
                             break
+                        next_bb = self.__bb_from_label(instr.result)
+                        break
                     case SSAOperator.GOTO:
                         next_bb = self.__bb_from_label(result)
                         break

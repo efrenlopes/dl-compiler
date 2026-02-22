@@ -41,7 +41,7 @@ if __name__ == '__main__':
     ic.interpret()
 
     ssa = SSA(ic)
-    optimize_ssa(ic)
+    #optimize_ssa(ic)
     #copy_propagation(ic)
     #dead_code_elimination(ic)
     #SCCP.optimize(ic)
@@ -49,6 +49,7 @@ if __name__ == '__main__':
     #ic.bb_sequence[0].instructions[1].result.number = 15
 
     print(ic)
+    ic.plot()
     ic.interpret()
 
     

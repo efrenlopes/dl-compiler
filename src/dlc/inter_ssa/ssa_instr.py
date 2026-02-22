@@ -22,7 +22,7 @@ class SSAInstr:
             case SSAOperator.LABEL: 
                 return f'{result}:'
             case SSAOperator.IF | SSAOperator.IFFALSE: 
-                return f'{op} {arg1} {SSAOperator.GOTO} {result}'
+                return f'{op} {arg1} {SSAOperator.GOTO} {arg2} else {SSAOperator.GOTO} {result}'
             case SSAOperator.GOTO: 
                 return f'{op} {result}'
             case SSAOperator.CONVERT | SSAOperator.PLUS | SSAOperator.MINUS | SSAOperator.NOT:

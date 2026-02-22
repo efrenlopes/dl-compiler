@@ -19,5 +19,13 @@
     "**/node_modules": true,
     "**/bower_components": true,
     "**/*.pyc": true
-  }
+  },
+  "cSpell.words": [
+    "ALLOCA",
+    "defsites",
+    "idom",
+    "instrs",
+    "promovíveis",
+    "succ"
+  ]
 }

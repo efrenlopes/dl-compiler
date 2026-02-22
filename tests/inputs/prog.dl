@@ -50,5 +50,4 @@ programa primo inicio
         i = i^2;
         escreva(i);
     fim;
-fim.
-*/
+fim.*/

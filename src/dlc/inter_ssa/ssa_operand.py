@@ -75,7 +75,7 @@ class SSATempVersion(SSAOperand):
 
 class SSAPhi(SSAOperand):
     def __init__(self):
-        # Mapeia o BasicBlock para a SSATempVersion correspondente
+        # BasicBlock para SSATempVersion
         self.paths = {} 
 
     def add_path(self, block: BasicBlock, version: SSATempVersion):

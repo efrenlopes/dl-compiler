@@ -167,7 +167,7 @@ class SSA:
         # 2️⃣ Processar instruções
         # =========================
         new_instrs = []
-        for instr in bb.instructions[:]:
+        for instr in bb.instructions:
             # Pula PHIs recém-criadas no passo 1
             if instr.op == SSAOperator.PHI:
                 new_instrs.append(instr)
@@ -175,7 +175,6 @@ class SSA:
 
             
             if instr.op == SSAOperator.ALLOCA:
-                bb.instructions.remove(instr)
                 continue
 
             # -------- LOAD (t2 = load t0) --------
