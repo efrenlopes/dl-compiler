@@ -194,7 +194,7 @@ def simplify_cfg(ic: SSA_IC) -> bool:
         
         if len(instrs) == 1 and instrs[0].op == SSAOperator.GOTO:
             target_label = instrs[0].result # Destino do goto
-            target_bb = next(b for b in ic.bb_sequence if ic.bb_from_label(label == target_label))
+            target_bb = next(b for b in ic.bb_sequence if ic.bb_from_label(label) == target_label)
             
             if target_bb == bb: continue # Evita loop infinito em si mesmo
 

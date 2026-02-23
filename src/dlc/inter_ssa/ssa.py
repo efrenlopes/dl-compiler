@@ -254,7 +254,7 @@ class SSA:
         # 3️⃣ Preencher argumentos das PHIs nos sucessores
         # =====================================
         for succ in bb.successors:
-            if succ in self.phi:
+            #if succ in self.phi:
                 for v, entry in self.phi[succ].items():
                     # 'entry' pode ser a SSAInstr (se o sucessor já foi visitado)
                     # ou o objeto SSAPhi (se o sucessor ainda não foi visitado)
@@ -270,6 +270,8 @@ class SSA:
                         version = self.stack[v][-1]
                         # Agora chamamos o add_path no objeto SSAPhi correto
                         target_phi.add_path(bb, version)
+                    
+
 
         # =====================================
         # 4️⃣ DFS na Árvore de Dominância
