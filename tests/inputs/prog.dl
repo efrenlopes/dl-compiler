@@ -1,4 +1,4 @@
-programa primo inicio
+/*programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
     
@@ -15,7 +15,7 @@ programa primo inicio
         i = i + +1;
     fim;
     escreva(eh_primo);
-fim.
+fim.*/
 
 
 
@@ -41,7 +41,7 @@ fim.*/
     escreva(soma);
 fim.*/
 
-/*//Programa que determina se um número lido é primo ou não
+//Programa que determina se um número lido é primo ou não
 programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
@@ -55,7 +55,7 @@ programa primo inicio
     se (num <= 1)
         eh_primo = falso
     senao
-        eh_primo = !falso;
+        eh_primo = verdade;
 
     enquanto ( i < num & eh_primo == verdade) inicio
         se (num%i == 0)
@@ -70,4 +70,4 @@ programa primo inicio
         i = i^2;
         escreva(i);
     fim;
-fim.*/
+fim.

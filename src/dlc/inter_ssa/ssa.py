@@ -14,10 +14,12 @@ class SSA:
         self.dom_tree = self._build_dom_tree()
         self.df = self._compute_dominance_frontier()
         self.phi = self._insert_phi()
-        self.rename()
+        self._rename()
         self._remove_trivial_phis()
 
-
+    def __str__(self):
+        return str(self.ic)
+    
     def _mem2reg(self, ic: SSA_IC): 
         for bb in self.ic.bb_sequence:
             new_instrs = []
@@ -163,7 +165,7 @@ class SSA:
                 n = w.pop()
                 for y in self.df[n]:
                     if v not in phi_map[y]:
-                        phi_map[y][v] = SSAPhi()
+                        phi_map[y][v] = SSAInstr(SSAOperator.PHI, SSAPhi(), SSAOperand.EMPTY, SSAOperand.EMPTY)
                         # Se y não era um local de definição original, adicione ao worklist
                         if y not in self.defsites[v]:
                             w.append(y)
@@ -172,7 +174,7 @@ class SSA:
 
 
 
-    def rename(self):
+    def _rename(self):
         # Inicializa pilhas e contadores para cada variável
         self.stack = {}
         self.counters = {}
@@ -200,34 +202,21 @@ class SSA:
         phi_instrs = []
         # bb pode não estar no mapa phi se não tiver fronteira de dominância
         phis_in_this_bb = self.phi.get(bb, {})
-        
-        for v, phi_op in phis_in_this_bb.items(): 
+        for v, instr in phis_in_this_bb.items(): 
             # Incrementa contador e empilha nova versão para a PHI
             self.counters[v] += 1
             new_version = SSATempVersion(v, self.counters[v])
             self.stack[v].append(new_version)
-
-            # O mapa 'self.phi[bb][v]' agora guarda a SSAInstr pronta
-            phi_instr = SSAInstr(SSAOperator.PHI, phi_op, SSAOperand.EMPTY, new_version)
-            phi_instrs.append(phi_instr)
-            self.phi[bb][v] = phi_instr
-
-        # Insere as PHIs logo após o Label (se existir)
-        index = 1 if bb.instructions and bb.instructions[0].op == SSAOperator.LABEL else 0
-        bb.instructions[index:index] = phi_instrs
+            instr.result = new_version
+            phi_instrs.append(instr)
+        # Insere as PHIs logo após o Label
+        bb.instructions[1:1] = phi_instrs
 
         # =========================
         # 2️⃣ Processar instruções (Versionamento Universal)
         # =========================
         new_instrs = []
         for instr in bb.instructions:
-            # IMPORTANTE: Se for uma instrução PHI que acabamos de inserir, 
-            # pulamos o versionamento dela pois já foi feito no Passo 1.
-            if instr.op == SSAOperator.PHI:
-                new_instrs.append(instr)
-                continue
-
-            # Versiona Argumentos (Usos)
             if instr.arg1.is_temp:
                 temp = instr.arg1
                 if self.stack[temp]:
@@ -250,26 +239,15 @@ class SSA:
 
         bb.instructions = new_instrs
 
+
         # =====================================
         # 3️⃣ Preencher argumentos das PHIs nos sucessores
         # =====================================
         for succ in bb.successors:
-            #if succ in self.phi:
-                for v, entry in self.phi[succ].items():
-                    # 'entry' pode ser a SSAInstr (se o sucessor já foi visitado)
-                    # ou o objeto SSAPhi (se o sucessor ainda não foi visitado)
-                    
-                    target_phi = None
-                    if isinstance(entry, SSAPhi):
-                        target_phi = entry
-                    else:
-                        # Se já for uma instrução, o objeto SSAPhi está no arg1
-                        target_phi = entry.arg1 
-                    
-                    if v in self.stack and self.stack[v]:
-                        version = self.stack[v][-1]
-                        # Agora chamamos o add_path no objeto SSAPhi correto
-                        target_phi.add_path(bb, version)
+            for v, instr in self.phi[succ].items():
+                if v in self.stack and self.stack[v]:
+                    version = self.stack[v][-1]
+                    instr.arg1.add_path(bb, version)
                     
 
 
@@ -291,36 +269,47 @@ class SSA:
 
 
 
-    
-    #procurar forma mais simples de remover os triviais
+
     def _remove_trivial_phis(self):
-        changed = True
+        for bb in self.ic.bb_sequence:
+            new_instrs = []
+            for instr in bb.instructions:
+                if instr.op == SSAOperator.PHI:
+                    if len(instr.arg1.paths) < 2:
+                        continue
+                new_instrs.append(instr)
+            bb.instructions = new_instrs
+    
 
-        while changed:
-            changed = False
+    #procurar forma mais simples de remover os triviais
+    # def _remove_trivial_phis(self):
+    #     changed = True
 
-            for bb in self.ic.bb_sequence:
-                new_instrs = []
+    #     while changed:
+    #         changed = False
 
-                for instr in bb.instructions:
-                    if instr.op == SSAOperator.PHI:
-                        phi = instr.arg1
-                        values = list(phi.paths.values())
+    #         for bb in self.ic.bb_sequence:
+    #             new_instrs = []
 
-                        # Remove entradas None
-                        values = [v for v in values if v is not None]
+    #             for instr in bb.instructions:
+    #                 if instr.op == SSAOperator.PHI:
+    #                     phi = instr.arg1
+    #                     values = list(phi.paths.values())
 
-                        # Caso 1: zero ou um argumento
-                        if len(values) <= 1:
-                            changed = True
-                            continue
+    #                     # Remove entradas None
+    #                     values = [v for v in values if v is not None]
 
-                        # Caso 2: todos iguais
-                        first = values[0]
-                        if all(v == first for v in values):
-                            changed = True
-                            continue
+    #                     # Caso 1: zero ou um argumento
+    #                     if len(values) <= 1:
+    #                         changed = True
+    #                         continue
 
-                    new_instrs.append(instr)
+    #                     # Caso 2: todos iguais
+    #                     first = values[0]
+    #                     if all(v == first for v in values):
+    #                         changed = True
+    #                         continue
 
-                bb.instructions = new_instrs
+    #                 new_instrs.append(instr)
+
+    #             bb.instructions = new_instrs

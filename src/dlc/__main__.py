@@ -1,4 +1,4 @@
-from dlc.inter_ssa.sccp import optimize_ssa
+from dlc.inter_ssa.ssa_opt import optimize_ssa
 from dlc.inter_ssa.ssa import SSA
 from dlc.inter_ssa.ssa_ic import SSA_IC
 from dlc.lex.lexer import Lexer
@@ -42,15 +42,16 @@ if __name__ == '__main__':
     print('\n\n')
 
     ssa = SSA(ic)
-    print(ic)
-    ic.interpret()
+    print(ssa)
+    ssa.ic.plot()
+    ssa.ic.interpret()
     print('\n\n')
 
 
-    #optimize_ssa(ic)
-    print(ic)
-    ic.plot()
-    ic.interpret()
+    optimize_ssa(ssa)
+    print('**', ssa.ic)
+    ssa.ic.plot()
+    ssa.ic.interpret()
     print('\n\n')
 
 

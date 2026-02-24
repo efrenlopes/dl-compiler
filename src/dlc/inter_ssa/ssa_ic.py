@@ -44,13 +44,13 @@ class SSA_IC(Visitor):
 
     def __init__(self, ast: AST):
         self.__var_temp_map = {}
-        self.__label_bb_map = {}
+        self.label_bb_map = {}
         self.__comments = {}
 
         L0 = SSALabel()
-        self.bb_entry = BasicBlock()
-        self.__label_bb_map[L0] = self.bb_entry
-        self.__bb_current = self.bb_entry
+        bb_entry = BasicBlock()
+        self.label_bb_map[L0] = bb_entry
+        self.__bb_current = bb_entry
         self.bb_sequence = []
         self.add_instr( SSAInstr(SSAOperator.LABEL, SSAOperand.EMPTY, SSAOperand.EMPTY, L0 ))
         
@@ -64,9 +64,9 @@ class SSA_IC(Visitor):
     
 
     def bb_from_label(self, label):
-        if label not in self.__label_bb_map:
-            self.__label_bb_map[label] = BasicBlock()
-        return self.__label_bb_map[label]
+        if label not in self.label_bb_map:
+            self.label_bb_map[label] = BasicBlock()
+        return self.label_bb_map[label]
 
 
     def add_instr(self, instr: SSAInstr, comment: str=None):
@@ -322,7 +322,7 @@ class SSA_IC(Visitor):
 
 
 
-    OPS = {
+    OPS_BIN = {
         SSAOperator.SUM: lambda a, b: a + b,
         SSAOperator.SUB: lambda a, b: a - b,
         SSAOperator.MUL: lambda a, b: a * b,
@@ -335,6 +335,9 @@ class SSA_IC(Visitor):
         SSAOperator.LE: lambda a, b: a <= b,
         SSAOperator.GT: lambda a, b: a > b,
         SSAOperator.GE: lambda a, b: a >= b,
+    }
+
+    OPS_UN = {
         SSAOperator.PLUS: lambda a: + a,
         SSAOperator.MINUS: lambda a: - a,
         SSAOperator.NOT: lambda a: not a,
@@ -342,8 +345,8 @@ class SSA_IC(Visitor):
     }
 
     @staticmethod
-    def operate(op: SSAOperator, value1, value2):
-        value = SSA_IC.OPS[op](value1, value2)
+    def operate_binary(op: SSAOperator, value1, value2):
+        value = SSA_IC.OPS_BIN[op](value1, value2)
         if isinstance(value, bool):
             return value
         elif isinstance(value, int):
@@ -353,7 +356,7 @@ class SSA_IC(Visitor):
 
     @staticmethod
     def operate_unary(op: SSAOperator, value):
-        value = SSA_IC.OPS[op](value)
+        value = SSA_IC.OPS_UN[op](value)
         if isinstance(value, bool):
             return value
         elif isinstance(value, int):
@@ -363,8 +366,6 @@ class SSA_IC(Visitor):
 
     def interpret(self):
         mem = {}
-        #reg = {}
-
 
         def get_value(arg):
             if arg.is_temp or arg.is_temp_version:
@@ -384,7 +385,7 @@ class SSA_IC(Visitor):
                 
                 match op:
                     case SSAOperator.PHI:
-                        value = get_value( instr.arg1.paths[bb_prev] )
+                        value = get_value( instr.arg1.paths.get(bb_prev, SSAOperand.EMPTY)) #retorna SSAOperand.EMPTY como valor padrão para o caso de PHIs inúteis
                         mem[result] = value
                     case SSAOperator.ALLOCA:
                         mem[result] = None
@@ -420,12 +421,13 @@ class SSA_IC(Visitor):
                         except ValueError:
                             print('Entrada de dados inválida! Interpretação encerrada.')
                             return
-                    case SSAOperator.CONVERT | SSAOperator.PLUS | SSAOperator.MINUS | SSAOperator.NOT:
-                        mem[result] = SSA_IC.operate_unary(op, value1)
                     case SSAOperator.MOVE:
                         mem[result] = value1
                     case _:
-                        mem[result] = SSA_IC.operate(op, value1, value2)
+                        if op in self.OPS_BIN:
+                            mem[result] = SSA_IC.operate_binary(op, value1, value2)
+                        elif op in self.OPS_UN:
+                            mem[result] = SSA_IC.operate_unary(op, value1)
 
 
             #TRANSIÇÃO DE BLOCOS
