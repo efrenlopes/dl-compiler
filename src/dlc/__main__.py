@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
 
     optimize_ssa(ssa)
-    print('**', ssa.ic)
+    print(ssa.ic)
     ssa.ic.plot()
     ssa.ic.interpret()
     print('\n\n')

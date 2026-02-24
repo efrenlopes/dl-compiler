@@ -322,7 +322,7 @@ class SSA_IC(Visitor):
 
 
 
-    OPS_BIN = {
+    OPS = {
         SSAOperator.SUM: lambda a, b: a + b,
         SSAOperator.SUB: lambda a, b: a - b,
         SSAOperator.MUL: lambda a, b: a * b,
@@ -335,18 +335,15 @@ class SSA_IC(Visitor):
         SSAOperator.LE: lambda a, b: a <= b,
         SSAOperator.GT: lambda a, b: a > b,
         SSAOperator.GE: lambda a, b: a >= b,
-    }
-
-    OPS_UN = {
-        SSAOperator.PLUS: lambda a: + a,
-        SSAOperator.MINUS: lambda a: - a,
-        SSAOperator.NOT: lambda a: not a,
-        SSAOperator.CONVERT: lambda a: float(a)
+        SSAOperator.PLUS: lambda a, _: + a,
+        SSAOperator.MINUS: lambda a, _: - a,
+        SSAOperator.NOT: lambda a, _: not a,
+        SSAOperator.CONVERT: lambda a, _: float(a)
     }
 
     @staticmethod
-    def operate_binary(op: SSAOperator, value1, value2):
-        value = SSA_IC.OPS_BIN[op](value1, value2)
+    def operate(op: SSAOperator, value1, value2):
+        value = SSA_IC.OPS[op](value1, value2)
         if isinstance(value, bool):
             return value
         elif isinstance(value, int):
@@ -356,7 +353,7 @@ class SSA_IC(Visitor):
 
     @staticmethod
     def operate_unary(op: SSAOperator, value):
-        value = SSA_IC.OPS_UN[op](value)
+        value = SSA_IC.OPS[op](value)
         if isinstance(value, bool):
             return value
         elif isinstance(value, int):
@@ -421,13 +418,12 @@ class SSA_IC(Visitor):
                         except ValueError:
                             print('Entrada de dados inválida! Interpretação encerrada.')
                             return
+                    #case SSAOperator.CONVERT | SSAOperator.PLUS | SSAOperator.MINUS | SSAOperator.NOT:
+                    #    mem[result] = SSA_IC.operate(op, value1, value2)
                     case SSAOperator.MOVE:
                         mem[result] = value1
                     case _:
-                        if op in self.OPS_BIN:
-                            mem[result] = SSA_IC.operate_binary(op, value1, value2)
-                        elif op in self.OPS_UN:
-                            mem[result] = SSA_IC.operate_unary(op, value1)
+                        mem[result] = SSA_IC.operate(op, value1, value2)
 
 
             #TRANSIÇÃO DE BLOCOS

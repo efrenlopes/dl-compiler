@@ -19,7 +19,7 @@ fim.*/
 
 
 
-/*programa phi_se inicio
+programa phi_se inicio
     inteiro a, b;
     a = 5;
     a = a * 2;
@@ -28,7 +28,7 @@ fim.*/
     senao
         b = 0;
     escreva(b);
-fim.*/
+fim.
 
 /*programa teste_laco inicio
     inteiro i, soma;
@@ -41,7 +41,7 @@ fim.*/
     escreva(soma);
 fim.*/
 
-//Programa que determina se um número lido é primo ou não
+/*//Programa que determina se um número lido é primo ou não
 programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
@@ -50,7 +50,7 @@ programa primo inicio
     raio = 5;
     area = 3.1415 * raio * raio;
     
-    num = 10;
+    leia(num);
     i = 2;
     se (num <= 1)
         eh_primo = falso
@@ -70,4 +70,4 @@ programa primo inicio
         i = i^2;
         escreva(i);
     fim;
-fim.
+fim.*/
