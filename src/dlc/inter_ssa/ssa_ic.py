@@ -111,14 +111,16 @@ class SSA_IC(Visitor):
 
     def __str__(self):
         tac = []
+        count = 0
         for bb in self.bb_sequence:
-            tac.append(str(bb))
+            tac.append(f'----{bb}----')
             for instr in bb:
+                line = f'{count:03d}\t{str(instr):<20}'
                 comment = self.__comments.get(instr)
                 if comment:
-                    tac.append(f'   {str(instr):<20} \t\t#{comment}')
-                else:
-                    tac.append(f'   {instr}')
+                    line += f'\t\t#{comment}'
+                tac.append(line)
+                count += 1
         return '\n'.join(tac)
 
 

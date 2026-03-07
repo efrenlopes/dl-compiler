@@ -42,7 +42,7 @@ def copy_propagation(ssa: SSA) -> bool:
         for instr in bb.instructions:
 
             # if instr.op == SSAOperator.PHI:
-            #     # Otimização: Também podemos propagar para dentro das PHIs!
+            #     # propaga para dentro das PHIs!
             #     phi_op = instr.arg1
             #     for block, version in phi_op.paths.items():
             #         if version in copies:
@@ -89,6 +89,8 @@ def constant_folding(ssa: SSA) -> bool:
     return changed
 
 
+
+
 @staticmethod
 def branch_folding(ssa: SSA) -> bool:
     changed = False
@@ -109,6 +111,7 @@ def branch_folding(ssa: SSA) -> bool:
                     instr.result = keep_label
                     changed = True
     return changed
+
 
 
 
@@ -139,6 +142,8 @@ def unreachable_code_elimination(ssa: SSA) -> bool:
             changed = True # Se o label não está na lista, o bloco morre
     ssa.ic.bb_sequence = new_bb_sequence
     return changed
+
+
 
 
 @staticmethod
@@ -240,36 +245,3 @@ def merge_blocks(ssa: SSA):
                 continue 
         i += 1
     return changed
-
-
-# @staticmethod
-# def merge_blocks(ssa: SSA):
-#     changed = False
-#     new_bb_sequence = []
-#     for bb in ssa.ic.bb_sequence[:]:
-#         # Só podemos fundir se:
-#         # 1. bb tem exatamente 1 sucessor (succ)
-#         # 2. succ tem exatamente 1 predecessor (bb)
-#         if len(bb.successors) == 1:
-#             succ = bb.successors[0]
-#             if len(succ.predecessors) == 1 and len(succ.instructions) == 2 :
-#                 bb.instructions.pop() #remove o goto
-#                 bb.instructions.extend(succ.instructions[1:]) #anexa o sucessor ao bb
-
-
-
-#                 bb.successors = succ.successors #bb herda os sucessores do seu sucessor
-                
-#                 for s in bb.successors: # Atualiza os predecessores dos novos sucessores
-#                     s.predecessors = [bb if p == succ else p for p in s.predecessors]
-#                 succ.instructions.clear()
-#                 succ.predecessors.clear()
-#                 succ.successors.clear()
-#                 #ssa.ic.bb_sequence.remove(succ) # Remove bloco da lista global
-
-#                 changed = True
-#                 continue
-#         new_bb_sequence.append(bb)
-#     ssa.ic.bb_sequence = new_bb_sequence
-#     return changed
-
