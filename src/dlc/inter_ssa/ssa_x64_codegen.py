@@ -103,27 +103,33 @@ class SSAX64CodeGenerator():
             return f'[rbp - {offset}]'
 
     
+
+
     # def __resolve_phis(self, current_bb, target_label):
     #     target_bb = self.ssa.ic.bb_from_label(target_label)
     #     if not target_bb:
     #         return
 
+    #     # 1. Coletamos todos os movimentos necessários antes de executar qualquer um
+    #     moves = []
     #     for instr in target_bb.instructions:
     #         if instr.op == SSAOperator.PHI:
-    #             # Pega a versão da variável que vem especificamente do bloco de onde estamos saindo
     #             phi_var_version = instr.arg1.paths.get(current_bb)
-                
     #             if phi_var_version:
-    #                 # Resolve os endereços (pode ser reg ou stack)
     #                 dest = self.__resolve_arg(instr.result)
     #                 src = self.__resolve_arg(phi_var_version)
-                    
+
     #                 if dest != src:
-    #                     type = phi_var_version.type
-    #                     # Usa o registrador de acumulação como ponte para evitar Mem -> Mem
-    #                     self.code.append(f'\t# Phi: {instr.result} <- {phi_var_version}')
-    #                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {src}')
-    #                     self.code.append(f'\t{self.MOVE[type]} {dest}, {self.ACC_REG[type]}')
+    #                     moves.append((dest, src, phi_var_version.type))
+
+    #     self.code.append(f'\t# --- Resolvendo PHIs para {target_label} ---')
+
+    #     for dest, src, v_type in moves:
+    #         instr_mov = self.MOVE[v_type]
+    #         phi_reg = self.PHI_REG[v_type]
+
+    #         self.code.append(f'\t{instr_mov} {phi_reg}, {src}')
+    #         self.code.append(f'\t{instr_mov} {dest}, {phi_reg}')
 
 
     def __resolve_phis(self, current_bb, target_label):
@@ -131,26 +137,50 @@ class SSAX64CodeGenerator():
         if not target_bb:
             return
 
-        # 1. Coletamos todos os movimentos necessários antes de executar qualquer um
-        moves = []
+        copies = []
+
+        # 1. Coletar cópias
         for instr in target_bb.instructions:
             if instr.op == SSAOperator.PHI:
                 phi_var_version = instr.arg1.paths.get(current_bb)
+
                 if phi_var_version:
                     dest = self.__resolve_arg(instr.result)
                     src = self.__resolve_arg(phi_var_version)
 
                     if dest != src:
-                        moves.append((dest, src, phi_var_version.type))
+                        copies.append((dest, src, phi_var_version.type))
+
+        if not copies:
+            return
 
         self.code.append(f'\t# --- Resolvendo PHIs para {target_label} ---')
 
-        for dest, src, v_type in moves:
-            instr_mov = self.MOVE[v_type]
-            phi_reg = self.PHI_REG[v_type]
+        copies = list(copies)
 
-            self.code.append(f'\t{instr_mov} {phi_reg}, {src}')
-            self.code.append(f'\t{instr_mov} {dest}, {phi_reg}')
+        while copies:
+            progress = False
+            # 2. procurar cópia segura
+            for dest, src, v_type in copies:
+
+                if dest not in [s for _, s, _ in copies]:
+                    instr_mov = self.MOVE[v_type]
+                    self.code.append(f'\t{instr_mov} {dest}, {src}')
+                    copies.remove((dest, src, v_type))
+                    progress = True
+                    break
+
+            if progress:
+                continue
+
+            # 3. existe ciclo → quebrar com temporário
+            dest, src, v_type = copies.pop(0)
+            instr_mov = self.MOVE[v_type]
+            tmp = self.PHI_REG[v_type]
+            self.code.append(f'\t{instr_mov} {tmp}, {src}')
+            copies.append((dest, tmp, v_type))
+
+
 
 
     def __init__(self, ssa: SSA):

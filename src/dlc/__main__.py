@@ -49,18 +49,18 @@ if __name__ == '__main__':
     print('\n\n')
 
     ssa = SSA(ic)
-    #print(ssa)
+    print(ssa)
     #ssa.ic.plot()
-    #ssa.ic.interpret()
-    print('\n\n')
-
-
-    optimize_ssa(ssa)
-    print(ssa.ic)
-    #ssa.ic.plot()
-    print('\n\n**** Interpretação do TAC Otimizado ****')
     ssa.ic.interpret()
     print('\n\n')
+
+
+    # optimize_ssa(ssa)
+    # print(ssa.ic)
+    # #ssa.ic.plot()
+    # print('\n\n**** Interpretação do TAC Otimizado ****')
+    # ssa.ic.interpret()
+    # print('\n\n')
 
 
 
