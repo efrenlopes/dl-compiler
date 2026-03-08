@@ -6,9 +6,11 @@ from dlc.semantic.type import Type
 class LivenessAnalysis:
 
 
-    def __init__(self, ssa: SSA):
+    def __init__(self, ssa: SSA, types: tuple[Type]):
         self.ssa = ssa
+        self.types = types
         # Conjuntos por Bloco Básico
+        self.vars = set() # Todas as variáveis dos tipos em types
         self.use = {}  # Variáveis usadas antes de serem definidas no bloco
         self.def_ = {} # Variáveis definidas no bloco
         self.live_in = {bb: set() for bb in ssa.ic.bb_sequence}
@@ -25,21 +27,18 @@ class LivenessAnalysis:
             self.def_[bb] = set()
             
             for instr in bb.instructions:
-                # IGNORAR argumentos de PHI aqui para não poluir o IN do bloco atual
-                if instr.op == SSAOperator.PHI:
-                    res = instr.result
-                    if res and res.is_temp_version:
-                        self.def_[bb].add(res)
-                    continue 
+
+                for op in (instr.arg1, instr.arg2, instr.result):
+                    if op.is_temp_version and op.type in self.types:
+                        self.vars.add(op)
 
                 # Lógica normal para outras instruções
                 for op in (instr.arg1, instr.arg2):
-                    if op.is_temp_version and op not in self.def_[bb]:
+                    if op.is_temp_version and op.type in self.types and op not in self.def_[bb]:
                         self.use[bb].add(op)
                 
-                res = instr.result
-                if res and res.is_temp_version:
-                    self.def_[bb].add(res)
+                if instr.result.is_temp_version and instr.result.type in self.types:
+                    self.def_[bb].add(instr.result)
 
 
 
@@ -58,7 +57,7 @@ class LivenessAnalysis:
                         if instr.op == SSAOperator.PHI:
                             # Se a PHI no sucessor tem um caminho que vem de 'bb'
                             version = instr.arg1.paths.get(bb)
-                            if version and version.is_temp_version:
+                            if version and version.is_temp_version and version.type in self.types:
                                 new_out.add(version) # O valor deve estar vivo na saída de bb
                 
                 if new_out != self.live_out[bb]:

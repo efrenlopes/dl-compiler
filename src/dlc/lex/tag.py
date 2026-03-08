@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum
 
 class Tag(Enum):
 
@@ -41,14 +41,14 @@ class Tag(Enum):
     LIT_FALSE = 'falso'
 
     #ID e Literais numéricos
-    ID = auto()
-    LIT_INT = auto()
-    LIT_REAL = auto()
+    ID = 'ID'
+    LIT_INT = 'LIT_INT'
+    LIT_REAL = 'LIT_REAL'
 
     #Outros
-    UNK = auto()
-    EOF = auto()
-    CONVERT = auto()
+    UNK = 'UNK'
+    EOF = 'EOF'
+    CONVERT = 'CONVERT'
         
 
     def __str__(self):

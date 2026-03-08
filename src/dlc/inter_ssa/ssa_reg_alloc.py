@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Optional
+from typing import Dict, List
 
 from dlc.inter_ssa.ssa_live_analysis import LiveInterval
 

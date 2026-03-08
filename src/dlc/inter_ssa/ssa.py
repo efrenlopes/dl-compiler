@@ -113,35 +113,6 @@ class SSA:
 
 
 
-    # def _insert_phi(self):
-    #     basic_blocks = self.ic.bb_sequence
-        
-    #     # 1. Identificar variáveis promovíveis (que possuem ALLOCA)
-    #     self.promotable_vars = set()
-    #     self.defsites = {}
-        
-    #     for bb in basic_blocks:
-    #         for instr in bb.instructions:
-    #             if instr.op == SSAOperator.STORE:
-    #                 v = instr.result # O endereço onde estamos guardando
-    #                 self.promotable_vars.add(v)
-    #                 self.defsites.setdefault(v, set()).add(bb)
-
-    #     # 2. Inserção iterada de PHIs usando a Fronteira de Dominância
-    #     phi_map = {b: {} for b in basic_blocks}
-    #     for v in self.promotable_vars:
-    #         w = list(self.defsites.get(v, []))
-    #         #added_phi = set()
-    #         while w:
-    #             n = w.pop()
-    #             for y in self.df[n]:
-    #                 if v not in phi_map[y]:
-    #                     phi_map[y][v] = SSAPhi()
-    #                     if y not in self.defsites.get(v, []):
-    #                         w.append(y)
-        
-    #     return phi_map
-
 
     def _insert_phi(self):
         self.defsites = {}
@@ -279,37 +250,3 @@ class SSA:
                         continue
                 new_instrs.append(instr)
             bb.instructions = new_instrs
-    
-
-    #procurar forma mais simples de remover os triviais
-    # def _remove_trivial_phis(self):
-    #     changed = True
-
-    #     while changed:
-    #         changed = False
-
-    #         for bb in self.ic.bb_sequence:
-    #             new_instrs = []
-
-    #             for instr in bb.instructions:
-    #                 if instr.op == SSAOperator.PHI:
-    #                     phi = instr.arg1
-    #                     values = list(phi.paths.values())
-
-    #                     # Remove entradas None
-    #                     values = [v for v in values if v is not None]
-
-    #                     # Caso 1: zero ou um argumento
-    #                     if len(values) <= 1:
-    #                         changed = True
-    #                         continue
-
-    #                     # Caso 2: todos iguais
-    #                     first = values[0]
-    #                     if all(v == first for v in values):
-    #                         changed = True
-    #                         continue
-
-    #                 new_instrs.append(instr)
-
-    #             bb.instructions = new_instrs
