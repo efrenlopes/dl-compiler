@@ -166,10 +166,7 @@ class SSA:
 
 
     def _rename_block(self, bb: BasicBlock):
-        # =========================
-        # 1️⃣ Inserir PHIs no topo
-        # =========================
-        #phi_instrs = []
+        # Inserir PHIs no topo
         # bb pode não estar no mapa phi se não tiver fronteira de dominância
         phis_in_this_bb = self.phi.get(bb, {})
         for v, instr in phis_in_this_bb.items(): 
@@ -179,14 +176,9 @@ class SSA:
             self.stack[v].append(new_version)
             instr.result = new_version
             bb.phi_instrs.append(instr) #phi_instrs.append(instr)
-        # Insere as PHIs logo após o Label
-        #bb.instructions[1:1] = phi_instrs
 
 
-        # =========================
-        # 2️⃣ Processar instruções (Versionamento Universal)
-        # =========================
-        #new_instrs = []
+        # Processar instruções (Versionamento Universal)
         for instr in bb:
             if instr.arg1.is_temp:
                 temp = instr.arg1
@@ -206,14 +198,8 @@ class SSA:
                 self.stack[temp].append(new_version)
                 instr.result = new_version
 
-            #new_instrs.append(instr)
 
-        #bb.instructions = new_instrs
-
-
-        # =====================================
-        # 3️⃣ Preencher argumentos das PHIs nos sucessores
-        # =====================================
+        # Preencher argumentos das PHIs nos sucessores
         for succ in bb.successors:
             for v, instr in self.phi[succ].items():
                 if v in self.stack and self.stack[v]:
@@ -222,15 +208,10 @@ class SSA:
                     
 
 
-        # =====================================
-        # 4️⃣ DFS na Árvore de Dominância
-        # =====================================
+        # DFS na Árvore de Dominância
         for child in self.dom_tree.get(bb, []):
             self._rename_block(child)
 
-        # =====================================
-        # 5️⃣ Backtrack (Pop)
-        # =====================================
         # Removemos da pilha apenas o que este bloco definiu
         for instr in bb:
             if instr.result and instr.result.is_temp_version:
@@ -240,11 +221,16 @@ class SSA:
 
 
 
-
     def _remove_trivial_phis(self):
         for bb in self.ir.bb_sequence:
-            new_phi_instrs = []
-            for instr in bb.phi_instrs:
-                if len(instr.arg1.paths) >= 2:
-                    new_phi_instrs.append(instr)
-            bb.phi_instrs = new_phi_instrs
+            for instr in bb.phi_instrs[:]:
+                if len(instr.arg1.paths) == 1:
+                    bb.phi_instrs.remove(instr)
+
+    # def _remove_trivial_phis(self):
+    #     for bb in self.ir.bb_sequence:
+    #         new_phi_instrs = []
+    #         for instr in bb.phi_instrs:
+    #             if len(instr.arg1.paths) >= 2:
+    #                 new_phi_instrs.append(instr)
+    #         bb.phi_instrs = new_phi_instrs

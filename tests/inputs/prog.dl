@@ -12,7 +12,7 @@ fim.*/
 /*programa area_circulo inicio
   inteiro raio;
   booleano positivo;
-  leia(raio);
+  raio = 5;
   positivo = (raio > 1 | raio == 1);
   se (positivo == verdade) inicio
     real area;
@@ -28,7 +28,7 @@ fim.*/
     inteiro i, num;
     booleano eh_primo; 
     
-    leia(num);
+    num = 5;
     i = 2;
     se (num <= 1)
         eh_primo = falso
@@ -46,15 +46,20 @@ fim.*/
 
 
 /*programa phi_se inicio
-    inteiro a, b;
-    a = 5;
+    inteiro a, b, c;
+    leia(a);
     a = a * +2;
-    se (a == 10)
-        b = a
-    senao
+    se (a == 10) inicio
+        b = a;
+        c = 1;
+    fim senao inicio
         b = 0;
+        c = 0;
+    fim;
     escreva(b);
+    escreva(c);
 fim.*/
+
 
 /*programa teste_laco inicio
     inteiro i, soma;

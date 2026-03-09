@@ -93,20 +93,6 @@ class IR(Visitor):
         if comment:
             self.__comments[instr] = comment
 
-            
-            # case Operator.GOTO:
-            #     bb_target = self.bb_from_label(instr.result)
-            #     self.__bb_current.add_successor(bb_target)
-            
-            # case Operator.IF:
-            #     bb_target = self.bb_from_label(instr.arg2)
-            #     bb_fall = self.bb_from_label(instr.result)
-            #     self.__bb_current.add_successor(bb_target)
-            #     self.__bb_current.add_successor(bb_fall)
-
-        # self.__bb_current.instructions.append(instr)
-        # if comment:
-        #     self.__comments[instr] = comment
 
 
 
@@ -361,6 +347,8 @@ class IR(Visitor):
         Operator.CONVERT: lambda a, _: float(a)
     }
 
+
+
     @staticmethod
     def operate(op: Operator, value1, value2):
         value = IR.OPS[op](value1, value2)
@@ -371,15 +359,7 @@ class IR(Visitor):
         elif isinstance(value, float):
             return c_double(value).value
 
-    # @staticmethod
-    # def operate_unary(op: Operator, value):
-    #     value = IR.OPS[op](value)
-    #     if isinstance(value, bool):
-    #         return value
-    #     elif isinstance(value, int):
-    #         return c_int32(value).value
-    #     elif isinstance(value, float):
-    #         return c_double(value).value
+
 
     def interpret(self):
         mem = {}
@@ -402,7 +382,7 @@ class IR(Visitor):
                 
                 match op:
                     case Operator.PHI:
-                        value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna Operand.EMPTY como valor padrão para o caso de PHIs inúteis
+                        value = get_value( instr.arg1.paths.get(bb_prev) ) #value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna Operand.EMPTY como valor padrão para o caso de PHIs inúteis
                         mem[result] = value
                     case Operator.ALLOCA:
                         mem[result] = None

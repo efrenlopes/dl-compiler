@@ -133,14 +133,14 @@ class CodeGeneratorX64():
 
 
     def __resolve_phis(self, current_bb, target_label):
-        target_bb = self.ssa.ic.bb_from_label(target_label)
+        target_bb = self.ssa.ir.bb_from_label(target_label)
         if not target_bb:
             return
 
         copies = []
 
         # 1. Coletar cópias
-        for instr in target_bb.instructions:
+        for instr in target_bb:
             if instr.op == Operator.PHI:
                 phi_var_version = instr.arg1.paths.get(current_bb)
 
@@ -241,7 +241,7 @@ class CodeGeneratorX64():
         current_bb = None
 
         # Gerar código para cada instrução
-        for instr in ssa.ic:
+        for instr in ssa.ir:
             result = self.__resolve_arg(instr.result)
             arg1 = self.__resolve_arg(instr.arg1)
             arg2 = self.__resolve_arg(instr.arg2)
@@ -256,7 +256,7 @@ class CodeGeneratorX64():
                     continue
 
                 case Operator.LABEL:
-                    current_bb = ssa.ic.bb_from_label(instr.result)
+                    current_bb = ssa.ir.bb_from_label(instr.result)
                     self.code.append(f'\t{result}:')
                 
                 case Operator.GOTO:

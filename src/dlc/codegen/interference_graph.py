@@ -37,9 +37,10 @@ class InterferenceGraph:
             # -------------------------------------------------
 
             #Aparentementemente este treecho nunca rodava, deixar comentado por enquanto para testes
+            
             '''
             for succ in bb.successors:
-                for instr in succ.instructions:
+                for instr in succ:
                     if instr.op != Operator.PHI:
                         break
 
@@ -48,7 +49,8 @@ class InterferenceGraph:
 
                     if operand and operand.is_temp_version and operand in self.liveness.vars:
                         for v in live:
-                            self.__add_edge(operand, v)'''
+                            self.__add_edge(operand, v)
+            '''
 
             # -------------------------------------------------
             # 2. INTERFERÊNCIA DENTRO DO BLOCO (BOTTOM-UP)
@@ -61,7 +63,6 @@ class InterferenceGraph:
                 if res and res.is_temp_version and res in self.liveness.vars:
                     for v in live:
                         self.__add_edge(res, v)
-
                     live.discard(res)
 
                 # USE
@@ -71,6 +72,7 @@ class InterferenceGraph:
 
 
 
+    '''
     def get_operand_for_predecessor(self, pred):
         """
         Retorna o operando da PHI correspondente ao predecessor.
@@ -79,7 +81,7 @@ class InterferenceGraph:
             if bb == pred:
                 return var
         return None
-
+    '''
 
     def __color_graph(self):
         stack = []
@@ -89,7 +91,10 @@ class InterferenceGraph:
         
         # Lista de nomes de registradores reais (ex: rax, rbx...)
         # 1. Simplificação
-        nodes = list(temp_graph.keys())
+        
+        #nodes = list(temp_graph.keys())
+        nodes = sorted(list(temp_graph.keys()), key=lambda x: str(x))
+        
         while nodes:
             # Busca nó com grau < K
             for node in nodes:

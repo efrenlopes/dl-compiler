@@ -1,17 +1,14 @@
-from pathlib import Path
+import sys
 import subprocess
-
-from dlc.codegen.interference_graph import InterferenceGraph
-from dlc.codegen.live_analysis import LivenessAnalysis
+from pathlib import Path
 from dlc.inter.ssa_opt import optimize_ssa
 from dlc.inter.ssa import SSA
 from dlc.inter.ir import IR
 from dlc.codegen.codegen_x64 import CodeGeneratorX64
 from dlc.lex.lexer import Lexer
-from dlc.semantic.type import Type
 from dlc.syntax.parser import Parser
 from dlc.semantic.checker import Checker
-import sys
+
 
 if __name__ == '__main__':
     #Entrada
@@ -68,32 +65,32 @@ if __name__ == '__main__':
 
 
 
-    print("\nVacidade para inteiro/booleano")
-    live_int = LivenessAnalysis(ssa, (Type.INT, Type.BOOL))
-    live_int.print_liveness()
-    print('vars', live_int.vars)
-    print('use', live_int.use)
-    print('def', live_int.def_)
+    # print("\nVacidade para inteiro/booleano")
+    # live_int = LivenessAnalysis(ssa, (Type.INT, Type.BOOL))
+    # live_int.print_liveness()
+    # print('vars', live_int.vars)
+    # print('use', live_int.use)
+    # print('def', live_int.def_)
 
-    print("\nVacidade para REAL")
-    live_real = LivenessAnalysis(ssa, (Type.REAL,))
-    live_real.print_liveness()
-    print('vars', live_real.vars)
-    print('use', live_real.use)
-    print('def', live_real.def_)
+    # print("\nVacidade para REAL")
+    # live_real = LivenessAnalysis(ssa, (Type.REAL,))
+    # live_real.print_liveness()
+    # print('vars', live_real.vars)
+    # print('use', live_real.use)
+    # print('def', live_real.def_)
 
 
-    print("grafo interferencia inteiro/booleano")
-    ig_int = InterferenceGraph(live_int, ['r12d', 'r13d', 'r14d', 'r15d'])
-    print('registradores ', ig_int.reg_alloc, '\n')
-    print('spill', ig_int.mem_alloc, '\n')
-    print('spill slot count', ig_int.spill_slots_count)
+    # print("grafo interferencia inteiro/booleano")
+    # ig_int = InterferenceGraph(live_int, ['r12d', 'r13d', 'r14d', 'r15d'])
+    # print('registradores ', ig_int.reg_alloc, '\n')
+    # print('spill', ig_int.mem_alloc, '\n')
+    # print('spill slot count', ig_int.spill_slots_count)
 
-    print("grafo interferencia real")
-    ig_real = InterferenceGraph(live_real, [])
-    print('registradores ', ig_real.reg_alloc, '\n')
-    print('spill', ig_real.mem_alloc, '\n')
-    print('spill slot count', ig_real.spill_slots_count)
+    # print("grafo interferencia real")
+    # ig_real = InterferenceGraph(live_real, [])
+    # print('registradores ', ig_real.reg_alloc, '\n')
+    # print('spill', ig_real.mem_alloc, '\n')
+    # print('spill slot count', ig_real.spill_slots_count)
 
 
 
@@ -102,17 +99,17 @@ if __name__ == '__main__':
 
 
     # #Geração de código x64
-    # cgx64 = CodeGeneratorX64(ssa)
-    # #print(cgx64.reg_alloc)
-    # #print(cgx64.mem_alloc)
-    # file_name = 'out/prog.s'
-    # Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-    # file = open(file_name, 'w')
-    # file.write('\n'.join(cgx64.code))
-    # file.close()
-    # print('\n\n**** Saída do programa alvo gerado ****')
-    # subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
-    # subprocess.run(['./out/prog'], check=True)
+    cgx64 = CodeGeneratorX64(ssa)
+    #print(cgx64.reg_alloc)
+    #print(cgx64.mem_alloc)
+    file_name = 'out/prog.s'
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    file = open(file_name, 'w')
+    file.write('\n'.join(cgx64.code))
+    file.close()
+    print('\n\n**** Saída do programa alvo gerado ****')
+    subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
+    subprocess.run(['./out/prog'], check=True)
 
     #Fim
     print('\nCompilação concluída com sucesso!')
