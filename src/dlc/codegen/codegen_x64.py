@@ -1,43 +1,43 @@
-from dlc.inter_ssa.ssa import SSA
-from dlc.inter_ssa.ssa_interference_graph import SSAInterferenceGraph
-from dlc.inter_ssa.ssa_live_analysis import LivenessAnalysis
-from dlc.inter_ssa.ssa_operator import SSAOperator
+from dlc.codegen.interference_graph import InterferenceGraph
+from dlc.codegen.live_analysis import LivenessAnalysis
+from dlc.inter.ssa import SSA
+from dlc.inter.operator import Operator
 from dlc.semantic.type import Type
 
 
-class SSAX64CodeGenerator():
+class CodeGeneratorX64():
     OP_ARITH_INT = {
-            SSAOperator.SUM: 'add',
-            SSAOperator.SUB: 'sub', 
-            SSAOperator.MUL: 'imul',
-            SSAOperator.DIV: 'idiv',
-            SSAOperator.MOD: 'idiv'
+            Operator.SUM: 'add',
+            Operator.SUB: 'sub', 
+            Operator.MUL: 'imul',
+            Operator.DIV: 'idiv',
+            Operator.MOD: 'idiv'
     }
 
     OP_ARITH_DOUBLE = {
-            SSAOperator.SUM: 'addsd',
-            SSAOperator.SUB: 'subsd',
-            SSAOperator.MUL: 'mulsd',
-            SSAOperator.DIV: 'divsd',
-            SSAOperator.MOD: 'divsd'
+            Operator.SUM: 'addsd',
+            Operator.SUB: 'subsd',
+            Operator.MUL: 'mulsd',
+            Operator.DIV: 'divsd',
+            Operator.MOD: 'divsd'
     }
 
     OP_REL_INT = {
-        SSAOperator.EQ: 'sete',
-        SSAOperator.NE: 'setne',
-        SSAOperator.LT: 'setl',
-        SSAOperator.LE: 'setle',
-        SSAOperator.GT: 'setg',
-        SSAOperator.GE: 'setge'
+        Operator.EQ: 'sete',
+        Operator.NE: 'setne',
+        Operator.LT: 'setl',
+        Operator.LE: 'setle',
+        Operator.GT: 'setg',
+        Operator.GE: 'setge'
     }
 
     OP_REL_DOUBLE = {
-        SSAOperator.EQ: 'sete',
-        SSAOperator.NE: 'setne',
-        SSAOperator.LT: 'setb',
-        SSAOperator.LE: 'setbe',
-        SSAOperator.GT: 'seta',
-        SSAOperator.GE: 'setae',
+        Operator.EQ: 'sete',
+        Operator.NE: 'setne',
+        Operator.LT: 'setb',
+        Operator.LE: 'setbe',
+        Operator.GT: 'seta',
+        Operator.GE: 'setae',
     }
 
     OP_ARITH = {
@@ -141,7 +141,7 @@ class SSAX64CodeGenerator():
 
         # 1. Coletar cópias
         for instr in target_bb.instructions:
-            if instr.op == SSAOperator.PHI:
+            if instr.op == Operator.PHI:
                 phi_var_version = instr.arg1.paths.get(current_bb)
 
                 if phi_var_version:
@@ -190,8 +190,8 @@ class SSAX64CodeGenerator():
         double_liveness = LivenessAnalysis(ssa, types=(Type.REAL,))
 
 
-        int_ig = SSAInterferenceGraph(int_liveness, self.INT_REGISTERS)
-        double_ig =  SSAInterferenceGraph(double_liveness, self.DOUBLE_REGISTERS)
+        int_ig = InterferenceGraph(int_liveness, self.INT_REGISTERS)
+        double_ig =  InterferenceGraph(double_liveness, self.DOUBLE_REGISTERS)
 
         int_reg_alloc = int_ig.reg_alloc
         int_mem_alloc = int_ig.mem_alloc
@@ -252,21 +252,21 @@ class SSAX64CodeGenerator():
 
             self.code.append(f'\t# {instr}')
             match instr.op:
-                case SSAOperator.PHI:
+                case Operator.PHI:
                     continue
 
-                case SSAOperator.LABEL:
+                case Operator.LABEL:
                     current_bb = ssa.ic.bb_from_label(instr.result)
                     self.code.append(f'\t{result}:')
                 
-                case SSAOperator.GOTO:
+                case Operator.GOTO:
                     self.__resolve_phis(current_bb, instr.result)
                     self.code.append(f'\tjmp {result}')
 
 
 
 
-                case SSAOperator.IF:
+                case Operator.IF:
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                     self.code.append(f'\tcmp {self.ACC_REG[type]}, 0')
 
@@ -290,46 +290,46 @@ class SSAX64CodeGenerator():
 
 
 
-                case SSAOperator.PRINT:
+                case Operator.PRINT:
                     self.code.append(f'\t{self.MOVE[type]} {self.CALL_ARG_REG[type]}, {arg1}')
                     self.code.append(f'\tcall {self.PRINT[type]}')
                 
-                case SSAOperator.READ:
+                case Operator.READ:
                     self.code.append(f'\tcall {self.READ[result_type]}')
                     self.code.append(f'\t{self.MOVE[result_type]} {result}, {self.ACC_REG[result_type]}')
 
-                case SSAOperator.MOVE | SSAOperator.PLUS:
+                case Operator.MOVE | Operator.PLUS:
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                     self.code.append(f'\t{self.MOVE[type]} {result}, {self.ACC_REG[type]}')
                 
-                case SSAOperator.CONVERT:
+                case Operator.CONVERT:
                     self.code.append(f'\t{self.MOVE[Type.INT]} {self.ACC_REG[Type.INT]}, {arg1}')
                     self.code.append(f'\tcvtsi2sd {self.ACC_REG[Type.REAL]}, {self.ACC_REG[Type.INT]}')
                     self.code.append(f'\t{self.MOVE[Type.REAL]} {result}, {self.ACC_REG[Type.REAL]}')
 
-                case SSAOperator.MINUS:
+                case Operator.MINUS:
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                     self.code.append(f'\tneg {self.ACC_REG[type]}')
                     self.code.append(f'\t{self.MOVE[result_type]} {result}, {self.ACC_REG[type]}')
 
-                case SSAOperator.NOT:
+                case Operator.NOT:
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                     self.code.append(f'\txor {self.ACC_REG[type]}, 1')
                     self.code.append(f'\t{self.MOVE[result_type]} {result}, {self.ACC_REG[type]}')
                     
 
                 case _:
-                    if instr.op in (SSAOperator.SUM, SSAOperator.SUB, SSAOperator.MUL):
+                    if instr.op in (Operator.SUM, Operator.SUB, Operator.MUL):
                         self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                         self.code.append(f'\t{self.OP_ARITH[type][instr.op]} {self.ACC_REG[type]}, {arg2}')
                         self.code.append(f'\t{self.MOVE[result_type]} {result}, {self.ACC_REG[type]}')
-                    elif instr.op in (SSAOperator.EQ, SSAOperator.NE, SSAOperator.LT, SSAOperator.LE, SSAOperator.GT, SSAOperator.GE):
+                    elif instr.op in (Operator.EQ, Operator.NE, Operator.LT, Operator.LE, Operator.GT, Operator.GE):
                         self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                         self.code.append(f'\t{self.CMP[type]} {self.ACC_REG[type]}, {arg2}')
                         self.code.append(f'\t{self.OP_REL[type][instr.op]} al')
                         self.code.append('\tmovzx eax, al')
                         self.code.append(f'\tmov {result}, eax')
-                    elif instr.op == SSAOperator.DIV:
+                    elif instr.op == Operator.DIV:
                         if type == Type.REAL:
                             self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                             self.code.append(f'\t{self.OP_ARITH[type][instr.op]} {self.ACC_REG[type]}, {arg2}')
@@ -340,7 +340,7 @@ class SSAX64CodeGenerator():
                             self.code.append(f'\tmov ecx, {arg2}')
                             self.code.append('\tidiv ecx')
                             self.code.append(f'\tmov {result}, eax')
-                    elif instr.op == SSAOperator.MOD:
+                    elif instr.op == Operator.MOD:
                         if type == Type.REAL:
                             self.code.append(f'\tmovsd xmm0, {arg1}')
                             self.code.append(f'\tmovsd xmm1, {arg2}')
@@ -353,7 +353,7 @@ class SSAX64CodeGenerator():
                             self.code.append(f'\tmov ecx, {arg2}')
                             self.code.append('\tidiv ecx')
                             self.code.append(f'\tmov {result}, edx')
-                    elif instr.op == SSAOperator.POW:
+                    elif instr.op == Operator.POW:
                         if type == Type.REAL:
                             self.code.append(f'\tmovsd xmm0, {arg1}')
                             self.code.append(f'\tmovsd xmm1, {arg2}')

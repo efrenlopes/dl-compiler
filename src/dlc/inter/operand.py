@@ -1,10 +1,17 @@
 from abc import ABC, abstractmethod
+from dlc.inter.basic_block import BasicBlock
 from dlc.semantic.type import Type
 
 
 class Operand(ABC):
     @property
     def is_temp(self): return False
+
+    @property
+    def is_temp_version(self): return False
+
+    @property
+    def is_phi(self): return False
 
     @property
     def is_const(self): return False
@@ -21,10 +28,11 @@ class Operand(ABC):
 class Temp(Operand):
     __count = -1
     
-    def __init__(self, type: Type):
+    def __init__(self, type: Type, is_address: bool=False):
         Temp.__count = Temp.__count + 1
         self.number = Temp.__count
         self.type = type
+        self.is_address = is_address
     
     @property
     def name(self):
@@ -38,7 +46,53 @@ class Temp(Operand):
         return self.name
     
     def __repr__(self):
-        return f'<ic_temp: {self.name}>'
+        return f'<ir_temp: {self.name}>'
+
+
+class TempVersion(Operand):
+    
+    def __init__(self, origin:Temp, version: int):
+        self.origin = origin
+        self.type = origin.type
+        self.version = version
+    
+    @property
+    def name(self):
+        return f't{self.origin.number}_{self.version}'
+    
+    @property
+    def is_temp_version(self):
+        return True
+    
+    def __str__(self):
+        return self.name
+    
+    def __repr__(self):
+        return f'<ir_temp_version: {self.name}>'
+
+
+
+
+class Phi(Operand):
+    def __init__(self):
+        # BasicBlock para SSATempVersion
+        self.paths = {} 
+
+    def add_path(self, block: BasicBlock, value: Operand):
+        self.paths[block] = value
+
+    @property
+    def is_phi(self):
+        return True
+
+    def __str__(self):
+        # Formato amigável: [bb1: t1_v1, bb2: t1_v2]
+        pairs = [f"{bb}: {ver}" for bb, ver in self.paths.items()]
+        return f"[{', '.join(pairs)}]"
+
+    def __repr__(self):
+        return '<ir_phi>'
+    
 
 
 
@@ -57,7 +111,7 @@ class Const(Operand):
         return str(self.value)
     
     def __repr__(self):
-        return f'<ic_const: {str(self)}>'
+        return f'<ir_const: {str(self)}>'
 
 
 
@@ -81,13 +135,16 @@ class Label(Operand):
         return self.name
     
     def __repr__(self):
-        return f'<ic_label: {self.name}>'
+        return f'<ir_label: {self.name}>'
 
 
 
 class Empty(Operand):
     def __str__(self):
-        return '<ic_empty>'
-    
+        return '<ir_empty>'
+
+    def __repr__(self):
+        return str(self)
+
 
 Operand.EMPTY = Empty()

@@ -5,7 +5,6 @@ class Operator(Enum):
     LABEL = 'label'
     GOTO = 'goto'
     IF = 'if'
-    IFFALSE = 'iffalse'
     PRINT = 'print'
     READ = 'read'
     CONVERT = 'convert'
@@ -25,7 +24,10 @@ class Operator(Enum):
     PLUS = 'plus'
     MINUS = 'minus'
     NOT = 'not'
-    
+    PHI = 'phi'
+    ALLOCA = 'alloca'
+    STORE = 'store'
+    LOAD = 'load'
 
     def __str__(self):
         return self.value

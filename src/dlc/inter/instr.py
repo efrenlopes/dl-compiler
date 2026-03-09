@@ -1,6 +1,8 @@
 from dlc.inter.operator import Operator
 from dlc.inter.operand import Operand
 
+
+
 class Instr:
     def __init__(self, op: Operator, arg1: Operand, arg2: Operand, result: Operand):
         self.op = op
@@ -19,8 +21,8 @@ class Instr:
                 return f'{result} {op} {arg1}'
             case Operator.LABEL: 
                 return f'{result}:'
-            case Operator.IF | Operator.IFFALSE: 
-                return f'{op} {arg1} {Operator.GOTO} {result}'
+            case Operator.IF:
+                return f'{op} {arg1} {Operator.GOTO} {arg2} else {Operator.GOTO} {result}'
             case Operator.GOTO: 
                 return f'{op} {result}'
             case Operator.CONVERT | Operator.PLUS | Operator.MINUS | Operator.NOT:
@@ -29,6 +31,15 @@ class Instr:
                 return f'{op} {arg1}'
             case Operator.READ:
                 return f'{op} {result}'
+            case Operator.PHI:
+                return f'{result} {Operator.MOVE} {Operator.PHI}({", ".join(f"{bb}: {ver}" for bb, ver in arg1.paths.items())})'
+            case Operator.ALLOCA:
+                return f'{result} {Operator.MOVE} {Operator.ALLOCA} {result.type}'
+            case Operator.STORE:
+                return f'{Operator.STORE} {arg1}, {result}'
+            case Operator.LOAD:
+                return f'{result} {Operator.MOVE} {Operator.LOAD} {arg1}'
+
             case _: 
                 return f'{result} {Operator.MOVE} {arg1} {op} {arg2}'
 

@@ -1,4 +1,4 @@
-programa test inicio
+/*programa test inicio
     inteiro a;
     a = 0;
     enquanto (a < 10) inicio
@@ -7,7 +7,7 @@ programa test inicio
     fim;
     a = 5 + 5^2;
     escreva(a);
-fim.
+fim.*/
 
 /*programa area_circulo inicio
   inteiro raio;
@@ -24,7 +24,7 @@ fim.*/
 
 
 
-/*programa primo inicio
+programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
     
@@ -41,7 +41,7 @@ fim.*/
         i = i + 1;
     fim;
     escreva(eh_primo);
-fim.*/
+fim.
 
 
 

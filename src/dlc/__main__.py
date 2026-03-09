@@ -1,12 +1,10 @@
 from pathlib import Path
 import subprocess
 
-from dlc.inter_ssa.ssa_interference_graph import SSAInterferenceGraph
-from dlc.inter_ssa.ssa_live_analysis import LivenessAnalysis
-from dlc.inter_ssa.ssa_opt import optimize_ssa
-from dlc.inter_ssa.ssa import SSA
-from dlc.inter_ssa.ssa_ic import SSA_IC
-from dlc.inter_ssa.ssa_x64_codegen import SSAX64CodeGenerator
+from dlc.inter.ssa_opt import optimize_ssa
+from dlc.inter.ssa import SSA
+from dlc.inter.ir import IR
+from dlc.codegen.codegen_x64 import CodeGeneratorX64
 from dlc.lex.lexer import Lexer
 from dlc.semantic.type import Type
 from dlc.syntax.parser import Parser
@@ -40,7 +38,7 @@ if __name__ == '__main__':
     #print(ast, '\n')
 
     #Geração de Código Intermediário
-    ic = SSA_IC(ast)
+    ic = IR(ast)
     #print("\n**** TAC ****")
     #print(ic, '\n')
     #print('\n**** Interpretação do TAC ****')
@@ -100,7 +98,7 @@ if __name__ == '__main__':
 
 
     #Geração de código x64
-    cgx64 = SSAX64CodeGenerator(ssa)
+    cgx64 = CodeGeneratorX64(ssa)
     #print(cgx64.reg_alloc)
     #print(cgx64.mem_alloc)
     file_name = 'out/prog.s'

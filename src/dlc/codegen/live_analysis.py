@@ -1,5 +1,5 @@
-from dlc.inter_ssa.ssa import SSA
-from dlc.inter_ssa.ssa_operator import SSAOperator
+from dlc.inter.ssa import SSA
+from dlc.inter.operator import Operator
 from dlc.semantic.type import Type
 
 
@@ -54,7 +54,7 @@ class LivenessAnalysis:
                     
                     # Checar se o sucessor tem PHIs que usam valores vindos deste bloco (bb)
                     for instr in succ.instructions:
-                        if instr.op == SSAOperator.PHI:
+                        if instr.op == Operator.PHI:
                             # Se a PHI no sucessor tem um caminho que vem de 'bb'
                             version = instr.arg1.paths.get(bb)
                             if version and version.is_temp_version and version.type in self.types:

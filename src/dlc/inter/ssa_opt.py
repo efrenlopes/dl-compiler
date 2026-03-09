@@ -1,7 +1,7 @@
-from dlc.inter_ssa.ssa import SSA
-from dlc.inter_ssa.ssa_ic import SSA_IC
-from dlc.inter_ssa.ssa_operator import SSAOperator
-from dlc.inter_ssa.ssa_operand import SSAConst, SSAOperand
+from dlc.inter.ssa import SSA
+from dlc.inter.ir import IR
+from dlc.inter.operator import Operator
+from dlc.inter.operand import Const, Operand
 
 
 
@@ -28,7 +28,7 @@ def copy_propagation(ssa: SSA) -> bool:
     # 1. Identificar cópias de forma exaustiva
     for bb in ssa.ic.bb_sequence:
         for instr in bb.instructions:
-            if instr.op == SSAOperator.MOVE:
+            if instr.op == Operator.MOVE:
                 target = instr.result
                 source = instr.arg1
                 # Se a fonte já é uma cópia de outra coisa, vai até a raiz
@@ -71,16 +71,16 @@ def constant_folding(ssa: SSA) -> bool:
         new_instrs = []
         for instr in bb.instructions:
             # 1. Verificar se é uma operação binária onde ambos os argumentos são constantes
-            if instr.op in SSA_IC.OPS and instr.arg1.is_const and (instr.arg2.is_const or instr.arg2 == SSAOperand.EMPTY):
+            if instr.op in IR.OPS and instr.arg1.is_const and (instr.arg2.is_const or instr.arg2 == Operand.EMPTY):
                 try:
                     # 2. Calcular o resultado em tempo de compilação
                     val1 = instr.arg1.value
                     val2 = instr.arg2.value if instr.arg2.is_const else None
-                    result_value = SSA_IC.OPS[instr.op](val1, val2)
+                    result_value = IR.OPS[instr.op](val1, val2)
                     # 3. Transformar a instrução em um MOVE de constante
-                    instr.op = SSAOperator.MOVE
-                    instr.arg1 = SSAConst(instr.result.type, result_value)
-                    instr.arg2 = SSAOperand.EMPTY
+                    instr.op = Operator.MOVE
+                    instr.arg1 = Const(instr.result.type, result_value)
+                    instr.arg2 = Operand.EMPTY
                     changed = True
                 except ZeroDivisionError:
                     pass
@@ -96,7 +96,7 @@ def branch_folding(ssa: SSA) -> bool:
     changed = False
     for bb in ssa.ic.bb_sequence[:]:
         for instr in bb.instructions:
-            if instr.op == SSAOperator.IF:
+            if instr.op == Operator.IF:
                 # Verifica se a condição do IF é uma constante
                 if instr.arg1.is_const:
                     # Decide o caminho a ser tomado
@@ -105,9 +105,9 @@ def branch_folding(ssa: SSA) -> bool:
                     bb_dead.predecessors.remove(bb)
                     bb.successors.remove(bb_dead)
                     # Transforma o IF em um GOTO incondicional para o bloco correto
-                    instr.op = SSAOperator.GOTO
-                    instr.arg1 = SSAOperand.EMPTY
-                    instr.arg2 = SSAOperand.EMPTY
+                    instr.op = Operator.GOTO
+                    instr.arg1 = Operand.EMPTY
+                    instr.arg2 = Operand.EMPTY
                     instr.result = keep_label
                     changed = True
     return changed
@@ -124,9 +124,9 @@ def unreachable_code_elimination(ssa: SSA) -> bool:
     reachable_labels.add(ssa.ic.bb_sequence[0].instructions[0].result)
     for bb in ssa.ic.bb_sequence:
         for instr in bb.instructions:
-            if instr.op == SSAOperator.GOTO:
+            if instr.op == Operator.GOTO:
                 reachable_labels.add(instr.result) # Adapte para pegar o nome do label
-            elif instr.op == SSAOperator.IF:
+            elif instr.op == Operator.IF:
                 reachable_labels.add(instr.arg2)
                 reachable_labels.add(instr.result)
 
@@ -134,7 +134,7 @@ def unreachable_code_elimination(ssa: SSA) -> bool:
     new_bb_sequence = []
     for bb in ssa.ic.bb_sequence:
         first_instr = bb.instructions[0]
-        if first_instr.op == SSAOperator.LABEL and first_instr.result in reachable_labels:
+        if first_instr.op == Operator.LABEL and first_instr.result in reachable_labels:
             new_bb_sequence.append(bb)
         else:
             for succ in bb.successors:
@@ -151,7 +151,7 @@ def phi_simplification(ssa: SSA):
     changed = False
     for bb in ssa.ic.bb_sequence:
         for instr in bb:
-            if instr.op == SSAOperator.PHI:
+            if instr.op == Operator.PHI:
                 #Remove dos PHIs os BBs que não existem mais
                 for bb in list(instr.arg1.paths):
                     if bb not in ssa.ic.bb_sequence:
@@ -159,7 +159,7 @@ def phi_simplification(ssa: SSA):
                         del instr.arg1.paths[bb]
                 #PHIs com valor único são transformados em MOVEs
                 if len(instr.arg1.paths) == 1:
-                    instr.op = SSAOperator.MOVE
+                    instr.op = Operator.MOVE
                     instr.arg1 = list(instr.arg1.paths.values())[0]
     return changed
 
@@ -179,7 +179,7 @@ def dead_code_elimination(ssa: SSA) -> bool:
     for bb in ssa.ic.bb_sequence:
         for instr in bb.instructions:
             # PHIs são usos
-            if instr.op == SSAOperator.PHI:
+            if instr.op == Operator.PHI:
                 for version in instr.arg1.paths.values():
                     if version.is_temp_version:
                         use_count[version] = use_count.get(version, 0) + 1
@@ -196,7 +196,7 @@ def dead_code_elimination(ssa: SSA) -> bool:
         for instr in bb.instructions:
             # Nunca apagar instruções que têm efeitos colaterais ou controle de fluxo
             # mesmo que o 'result' delas seja vago.
-            if instr.op in (SSAOperator.PRINT, SSAOperator.READ, SSAOperator.IF, SSAOperator.GOTO, SSAOperator.LABEL):
+            if instr.op in (Operator.PRINT, Operator.READ, Operator.IF, Operator.GOTO, Operator.LABEL):
                 new_instrs.append(instr)
                 continue
 
@@ -226,7 +226,7 @@ def merge_blocks(ssa: SSA):
                 # Corrigir PHIs nos sucessores do bloco que vai sumir
                 for grandson in succ.successors:
                     for instr in grandson.instructions:
-                        if instr.op == SSAOperator.PHI:
+                        if instr.op == Operator.PHI:
                             phi_op = instr.arg1
                             # Se a PHI esperava algo vindo de 'succ', agora vem de 'bb'
                             if succ in phi_op.paths:

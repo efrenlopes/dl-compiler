@@ -1,8 +1,8 @@
-from dlc.inter_ssa.ssa_live_analysis import LivenessAnalysis
-from dlc.inter_ssa.ssa_operator import SSAOperator
+from dlc.codegen.live_analysis import LivenessAnalysis
+from dlc.inter.operator import Operator
 
 
-class SSAInterferenceGraph:
+class InterferenceGraph:
     def __init__(self, liveness: LivenessAnalysis, registers: list[str]):
         self.liveness = liveness
         self.registers = registers
@@ -64,10 +64,10 @@ class SSAInterferenceGraph:
             # -------------------------------------------------
             for succ in bb.successors:
                 for instr in succ.instructions:
-                    if instr.op != SSAOperator.PHI:
+                    if instr.op != Operator.PHI:
                         break
 
-                    dest = instr.result
+                    #dest = instr.result
 
                     # operando correspondente a este predecessor
                     operand = instr.get_operand_for_predecessor(bb)

@@ -1,12 +1,12 @@
 from dlc.inter.basic_block import BasicBlock
-from dlc.inter_ssa.ssa_ic import SSA_IC
-from dlc.inter_ssa.ssa_instr import SSAInstr
-from dlc.inter_ssa.ssa_operator import SSAOperator
-from dlc.inter_ssa.ssa_operand import SSAOperand, SSAPhi, SSATempVersion
+from dlc.inter.ir import IR
+from dlc.inter.instr import Instr
+from dlc.inter.operator import Operator
+from dlc.inter.operand import Operand, Phi, TempVersion
 
 
 class SSA:
-    def __init__(self, ssa_ic: SSA_IC):
+    def __init__(self, ssa_ic: IR):
         self.ic = ssa_ic
         self._mem2reg(self.ic)
         self.dom = self._compute_dominators()
@@ -20,14 +20,14 @@ class SSA:
     def __str__(self):
         return str(self.ic)
     
-    def _mem2reg(self, ic: SSA_IC): 
+    def _mem2reg(self, ic: IR): 
         for bb in self.ic.bb_sequence:
             new_instrs = []
             for instr in bb.instructions:
-                if instr.op == SSAOperator.ALLOCA:
+                if instr.op == Operator.ALLOCA:
                     continue                
-                elif instr.op in (SSAOperator.STORE, SSAOperator.LOAD):
-                    instr.op = SSAOperator.MOVE 
+                elif instr.op in (Operator.STORE, Operator.LOAD):
+                    instr.op = Operator.MOVE 
                 
                 new_instrs.append(instr)
             bb.instructions = new_instrs
@@ -136,7 +136,7 @@ class SSA:
                 n = w.pop()
                 for y in self.df[n]:
                     if v not in phi_map[y]:
-                        phi_map[y][v] = SSAInstr(SSAOperator.PHI, SSAPhi(), SSAOperand.EMPTY, SSAOperand.EMPTY)
+                        phi_map[y][v] = Instr(Operator.PHI, Phi(), Operand.EMPTY, Operand.EMPTY)
                         # Se y não era um local de definição original, adicione ao worklist
                         if y not in self.defsites[v]:
                             w.append(y)
@@ -176,7 +176,7 @@ class SSA:
         for v, instr in phis_in_this_bb.items(): 
             # Incrementa contador e empilha nova versão para a PHI
             self.counters[v] += 1
-            new_version = SSATempVersion(v, self.counters[v])
+            new_version = TempVersion(v, self.counters[v])
             self.stack[v].append(new_version)
             instr.result = new_version
             phi_instrs.append(instr)
@@ -202,7 +202,7 @@ class SSA:
             if instr.result.is_temp:
                 temp = instr.result
                 self.counters[temp] += 1
-                new_version = SSATempVersion(temp, self.counters[temp])
+                new_version = TempVersion(temp, self.counters[temp])
                 self.stack[temp].append(new_version)
                 instr.result = new_version
 
@@ -245,7 +245,7 @@ class SSA:
         for bb in self.ic.bb_sequence:
             new_instrs = []
             for instr in bb.instructions:
-                if instr.op == SSAOperator.PHI:
+                if instr.op == Operator.PHI:
                     if len(instr.arg1.paths) < 2:
                         continue
                 new_instrs.append(instr)
