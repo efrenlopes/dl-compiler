@@ -56,13 +56,13 @@ if __name__ == '__main__':
     print('\n\n')
 
 
-    optimize_ssa(ssa)
-    print("\n**** TAC-SSA otimizada ****")
-    print(ssa.ir)
-    ssa.ir.plot()
-    print('\n\n**** Interpretação do TAC Otimizado ****')
-    ssa.ir.interpret()
-    print('\n\n')
+    # optimize_ssa(ssa)
+    # print("\n**** TAC-SSA otimizada ****")
+    # print(ssa.ir)
+    # ssa.ir.plot()
+    # print('\n\n**** Interpretação do TAC Otimizado ****')
+    # ssa.ir.interpret()
+    # print('\n\n')
 
 
 

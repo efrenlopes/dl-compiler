@@ -21,40 +21,13 @@ class InterferenceGraph:
         self.graph.setdefault(v, set()).add(u)
 
 
-    # def __build_graph(self):
-    #     for var in self.liveness.vars:
-    #         # Garante que a chave exista no self.graph, mesmo sem vizinhos
-    #         if var not in self.graph:
-    #             self.graph[var] = set()
-        
-    #     for bb in self.liveness.ssa.ic.bb_sequence:
-    #         # Começamos com as variáveis vivas na saída do bloco
-    #         live = set(self.liveness.live_out[bb])
-            
-    #         # Percorremos as instruções de trás para frente (bottom-up)
-    #         for instr in reversed(bb.instructions):
-    #             res = instr.result
-    #             if res.is_temp_version and res in self.liveness.vars:
-    #                 # O resultado interfere com tudo que está vivo agora
-    #                 for v in live:
-    #                     self.__add_edge(res, v)
-                    
-    #                 # O resultado "morre" ao subir (definição)
-    #                 live.discard(res)
-                
-    #             # Os operandos "nascem" ao subir (uso)
-    #             for op in (instr.arg1, instr.arg2):
-    #                 if op.is_temp_version and op in self.liveness.vars:
-    #                     live.add(op)
-
-
     def __build_graph(self):
         # Inicializa nós do grafo
         for var in self.liveness.vars:
             self.graph.setdefault(var, set())
 
         # Processa cada bloco
-        for bb in self.liveness.ssa.ic.bb_sequence:
+        for bb in self.liveness.ssa.ir.bb_sequence:
 
             # Conjunto de variáveis vivas na saída do bloco
             live = set(self.liveness.live_out[bb])
@@ -62,32 +35,29 @@ class InterferenceGraph:
             # -------------------------------------------------
             # 1. TRATAMENTO DAS PHI NAS ARESTAS (SSA RULE)
             # -------------------------------------------------
+
+            #Aparentementemente este treecho nunca rodava, deixar comentado por enquanto para testes
+            '''
             for succ in bb.successors:
                 for instr in succ.instructions:
                     if instr.op != Operator.PHI:
                         break
-
-                    #dest = instr.result
 
                     # operando correspondente a este predecessor
                     operand = instr.get_operand_for_predecessor(bb)
 
                     if operand and operand.is_temp_version and operand in self.liveness.vars:
                         for v in live:
-                            self.__add_edge(operand, v)
+                            self.__add_edge(operand, v)'''
 
             # -------------------------------------------------
             # 2. INTERFERÊNCIA DENTRO DO BLOCO (BOTTOM-UP)
             # -------------------------------------------------
-            for instr in reversed(bb.instructions):
-
-                # PHI não é tratada aqui
-                #if instr.op == SSAOperator.PHI:
-                #    continue
-
-                res = instr.result
+            #for instr in reversed(bb.instructions):
+            for instr in ( list(reversed(bb.body_instrs)) + list(reversed(bb.phi_instrs)) ):
 
                 # DEF
+                res = instr.result
                 if res and res.is_temp_version and res in self.liveness.vars:
                     for v in live:
                         self.__add_edge(res, v)
@@ -98,6 +68,8 @@ class InterferenceGraph:
                 for op in (instr.arg1, instr.arg2):
                     if op and op.is_temp_version and op in self.liveness.vars:
                         live.add(op)
+
+
 
     def get_operand_for_predecessor(self, pred):
         """

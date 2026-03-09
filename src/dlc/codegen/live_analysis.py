@@ -13,8 +13,8 @@ class LivenessAnalysis:
         self.vars = set() # Todas as variáveis dos tipos em types
         self.use = {}  # Variáveis usadas antes de serem definidas no bloco
         self.def_ = {} # Variáveis definidas no bloco
-        self.live_in = {bb: set() for bb in ssa.ic.bb_sequence}
-        self.live_out = {bb: set() for bb in ssa.ic.bb_sequence}
+        self.live_in = {bb: set() for bb in ssa.ir.bb_sequence}
+        self.live_out = {bb: set() for bb in ssa.ir.bb_sequence}
         
         self._compute_gen_kill()
         self._compute_live_intervals()
@@ -22,11 +22,11 @@ class LivenessAnalysis:
 
 
     def _compute_gen_kill(self):
-        for bb in self.ssa.ic.bb_sequence:
+        for bb in self.ssa.ir.bb_sequence:
             self.use[bb] = set()
             self.def_[bb] = set()
             
-            for instr in bb.instructions:
+            for instr in bb:
 
                 for op in (instr.arg1, instr.arg2, instr.result):
                     if op.is_temp_version and op.type in self.types:
@@ -46,19 +46,17 @@ class LivenessAnalysis:
         changed = True
         while changed:
             changed = False
-            for bb in reversed(self.ssa.ic.bb_sequence):
+            for bb in reversed(self.ssa.ir.bb_sequence):
                 # NOVIDADE: O OUT agora inclui os usos das PHIs nos sucessores
                 new_out = set()
                 for succ in bb.successors:
                     new_out |= self.live_in[succ]
                     
                     # Checar se o sucessor tem PHIs que usam valores vindos deste bloco (bb)
-                    for instr in succ.instructions:
-                        if instr.op == Operator.PHI:
-                            # Se a PHI no sucessor tem um caminho que vem de 'bb'
-                            version = instr.arg1.paths.get(bb)
-                            if version and version.is_temp_version and version.type in self.types:
-                                new_out.add(version) # O valor deve estar vivo na saída de bb
+                    for instr in succ.phi_instrs:
+                        version = instr.arg1.paths.get(bb)
+                        if version and version.is_temp_version and version.type in self.types:
+                            new_out.add(version) # O valor deve estar vivo na saída de bb
                 
                 if new_out != self.live_out[bb]:
                     self.live_out[bb] = new_out
@@ -75,7 +73,7 @@ class LivenessAnalysis:
     def print_liveness(self):
         print(f"{'Bloco':<10} | {'LIVE-IN':<25} | {'LIVE-OUT':<25}")
         print("-" * 70)
-        for bb in self.ssa.ic.bb_sequence:
+        for bb in self.ssa.ir.bb_sequence:
             in_str = ", ".join(str(v) for v in self.live_in[bb])
             out_str = ", ".join(str(v) for v in self.live_out[bb])
             print(f"{str(bb):<10} | {in_str:<25} | {out_str:<25}")
