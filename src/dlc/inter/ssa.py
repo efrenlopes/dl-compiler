@@ -8,7 +8,7 @@ from dlc.inter.operand import Operand, Phi, TempVersion
 class SSA:
     def __init__(self, ir: IR):
         self.ir = ir
-        self._mem2reg(self.ir)
+        self._mem2reg()
         self.dom = self._compute_dominators()
         self.idom = self._compute_idom()  # Dominador Imediato
         self.dom_tree = self._build_dom_tree()
@@ -20,18 +20,25 @@ class SSA:
     def __str__(self):
         return str(self.ir)
     
-    def _mem2reg(self, ic: IR): 
-        for bb in self.ir.bb_sequence:
-            new_body_instrs = []
-            for instr in bb.body_instrs:
-                if instr.op == Operator.ALLOCA:
-                    continue                
-                elif instr.op in (Operator.STORE, Operator.LOAD):
-                    instr.op = Operator.MOVE 
+    # def _mem2reg(self): 
+    #     for bb in self.ir.bb_sequence:
+    #         new_body_instrs = []
+    #         for instr in bb.body_instrs:
+    #             if instr.op == Operator.ALLOCA:
+    #                 continue                
+    #             elif instr.op in (Operator.STORE, Operator.LOAD):
+    #                 instr.op = Operator.MOVE 
                 
-                new_body_instrs.append(instr)
-            bb.body_instrs = new_body_instrs
+    #             new_body_instrs.append(instr)
+    #         bb.body_instrs = new_body_instrs
 
+    def _mem2reg(self): 
+        for bb in self.ir.bb_sequence:
+            for instr in bb.body_instrs[:]:
+                if instr.op == Operator.ALLOCA:
+                    bb.body_instrs.remove(instr)
+                elif instr.op in (Operator.STORE, Operator.LOAD):
+                    instr.op = Operator.MOVE
 
 
     def _compute_dominators(self):
