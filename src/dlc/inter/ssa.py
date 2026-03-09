@@ -6,9 +6,9 @@ from dlc.inter.operand import Operand, Phi, TempVersion
 
 
 class SSA:
-    def __init__(self, ssa_ic: IR):
-        self.ic = ssa_ic
-        self._mem2reg(self.ic)
+    def __init__(self, ir: IR):
+        self.ir = ir
+        self._mem2reg(self.ir)
         self.dom = self._compute_dominators()
         self.idom = self._compute_idom()  # Dominador Imediato
         self.dom_tree = self._build_dom_tree()
@@ -18,24 +18,24 @@ class SSA:
         self._remove_trivial_phis()
 
     def __str__(self):
-        return str(self.ic)
+        return str(self.ir)
     
     def _mem2reg(self, ic: IR): 
-        for bb in self.ic.bb_sequence:
-            new_instrs = []
-            for instr in bb.instructions:
+        for bb in self.ir.bb_sequence:
+            new_body_instrs = []
+            for instr in bb.body_instrs:
                 if instr.op == Operator.ALLOCA:
                     continue                
                 elif instr.op in (Operator.STORE, Operator.LOAD):
                     instr.op = Operator.MOVE 
                 
-                new_instrs.append(instr)
-            bb.instructions = new_instrs
+                new_body_instrs.append(instr)
+            bb.body_instrs = new_body_instrs
 
 
 
     def _compute_dominators(self):
-        basic_blocks = self.ic.bb_sequence
+        basic_blocks = self.ir.bb_sequence
         entry = basic_blocks[0]
         dom = {}
 
@@ -65,7 +65,7 @@ class SSA:
     
 
     def _compute_idom(self):
-        basic_blocks = self.ic.bb_sequence
+        basic_blocks = self.ir.bb_sequence
         entry = basic_blocks[0]
         idom = {entry: None}
 
@@ -86,7 +86,7 @@ class SSA:
 
 
     def _build_dom_tree(self):
-        basic_blocks = self.ic.bb_sequence
+        basic_blocks = self.ir.bb_sequence
         dom_tree = {b: [] for b in basic_blocks}
 
         for bb in basic_blocks:
@@ -98,7 +98,7 @@ class SSA:
     
     
     def _compute_dominance_frontier(self):
-        basic_blocks = self.ic.bb_sequence
+        basic_blocks = self.ir.bb_sequence
         df = {bb: set() for bb in basic_blocks}
 
         for bb in basic_blocks:
@@ -118,8 +118,8 @@ class SSA:
         self.defsites = {}
         
         # 1. Mapeia ONDE cada temporário é definido (não importa a instrução)
-        for bb in self.ic.bb_sequence:
-            for instr in bb.instructions:
+        for bb in self.ir.bb_sequence:
+            for instr in bb.body_instrs:
                 if instr.result and instr.result.is_temp:
                     v = instr.result
                     self.defsites.setdefault(v, set()).add(bb)
@@ -129,7 +129,7 @@ class SSA:
         phi_vars = [v for v, sites in self.defsites.items() if len(sites) > 1]
 
         # 3. Inserção iterada (Sua lógica de DF permanece a mesma)
-        phi_map = {b: {} for b in self.ic.bb_sequence}
+        phi_map = {bb: {} for bb in self.ir.bb_sequence}
         for v in phi_vars:
             w = list(self.defsites[v])
             while w:
@@ -150,16 +150,15 @@ class SSA:
         self.stack = {}
         self.counters = {}
         
-        for bb in self.ic.bb_sequence:
-            for instr in bb.instructions:
+        for bb in self.ir.bb_sequence:
+            for instr in bb: ###################### Verificar se aqui não basta que seja em body_instrs
                 # Coletamos todos os temporários possíveis (definições e usos)
-                temps = [instr.result, instr.arg1, instr.arg2]
-                for t in temps:
+                for t in (instr.result, instr.arg1, instr.arg2):
                     if t and t.is_temp and t not in self.stack:
                         self.stack[t] = []
                         self.counters[t] = 0
                         
-        entry = self.ic.bb_sequence[0]
+        entry = self.ir.bb_sequence[0]
         self._rename_block(entry)
 
 
@@ -170,7 +169,7 @@ class SSA:
         # =========================
         # 1️⃣ Inserir PHIs no topo
         # =========================
-        phi_instrs = []
+        #phi_instrs = []
         # bb pode não estar no mapa phi se não tiver fronteira de dominância
         phis_in_this_bb = self.phi.get(bb, {})
         for v, instr in phis_in_this_bb.items(): 
@@ -179,15 +178,16 @@ class SSA:
             new_version = TempVersion(v, self.counters[v])
             self.stack[v].append(new_version)
             instr.result = new_version
-            phi_instrs.append(instr)
+            bb.phi_instrs.append(instr) #phi_instrs.append(instr)
         # Insere as PHIs logo após o Label
-        bb.instructions[1:1] = phi_instrs
+        #bb.instructions[1:1] = phi_instrs
+
 
         # =========================
         # 2️⃣ Processar instruções (Versionamento Universal)
         # =========================
-        new_instrs = []
-        for instr in bb.instructions:
+        #new_instrs = []
+        for instr in bb:
             if instr.arg1.is_temp:
                 temp = instr.arg1
                 if self.stack[temp]:
@@ -206,9 +206,9 @@ class SSA:
                 self.stack[temp].append(new_version)
                 instr.result = new_version
 
-            new_instrs.append(instr)
+            #new_instrs.append(instr)
 
-        bb.instructions = new_instrs
+        #bb.instructions = new_instrs
 
 
         # =====================================
@@ -232,7 +232,7 @@ class SSA:
         # 5️⃣ Backtrack (Pop)
         # =====================================
         # Removemos da pilha apenas o que este bloco definiu
-        for instr in bb.instructions:
+        for instr in bb:
             if instr.result and instr.result.is_temp_version:
                 origin_var = instr.result.origin
                 if origin_var in self.stack:
@@ -242,11 +242,9 @@ class SSA:
 
 
     def _remove_trivial_phis(self):
-        for bb in self.ic.bb_sequence:
-            new_instrs = []
-            for instr in bb.instructions:
-                if instr.op == Operator.PHI:
-                    if len(instr.arg1.paths) < 2:
-                        continue
-                new_instrs.append(instr)
-            bb.instructions = new_instrs
+        for bb in self.ir.bb_sequence:
+            new_phi_instrs = []
+            for instr in bb.phi_instrs:
+                if len(instr.arg1.paths) >= 2:
+                    new_phi_instrs.append(instr)
+            bb.phi_instrs = new_phi_instrs

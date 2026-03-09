@@ -12,13 +12,13 @@ def optimize_ssa(ssa: SSA):
     while changed:
         changed = False
         changed |= copy_propagation(ssa)
-        changed |= constant_folding(ssa)
-        changed |= branch_folding(ssa)
-        changed |= unreachable_code_elimination(ssa)
-        changed |= phi_simplification(ssa)
-        changed |= phi_simplification(ssa)
-        changed |= dead_code_elimination(ssa)
-        changed |= merge_blocks(ssa)
+        # changed |= constant_folding(ssa)
+        # changed |= branch_folding(ssa)
+        # changed |= unreachable_code_elimination(ssa)
+        # changed |= phi_simplification(ssa)
+        # changed |= phi_simplification(ssa)
+        # changed |= dead_code_elimination(ssa)
+        # changed |= merge_blocks(ssa)
 
 @staticmethod
 def copy_propagation(ssa: SSA) -> bool:
@@ -26,8 +26,8 @@ def copy_propagation(ssa: SSA) -> bool:
     copies = {}
 
     # 1. Identificar cópias de forma exaustiva
-    for bb in ssa.ic.bb_sequence:
-        for instr in bb.instructions:
+    for bb in ssa.ir.bb_sequence:
+        for instr in bb.body_instrs:
             if instr.op == Operator.MOVE:
                 target = instr.result
                 source = instr.arg1
@@ -38,18 +38,8 @@ def copy_propagation(ssa: SSA) -> bool:
                     copies[target] = source
 
     # 2. Substituir usos
-    for bb in ssa.ic.bb_sequence:
-        for instr in bb.instructions:
-
-            # if instr.op == SSAOperator.PHI:
-            #     # propaga para dentro das PHIs!
-            #     phi_op = instr.arg1
-            #     for block, version in phi_op.paths.items():
-            #         if version in copies:
-            #             phi_op.paths[block] = copies[version]
-            #             changed = True
-            #     continue 
-            
+    for bb in ssa.ir.bb_sequence:
+        for instr in bb:            
             # Substituição padrão para arg1 e arg2
             if instr.arg1 in copies:
                 instr.arg1 = copies[instr.arg1]

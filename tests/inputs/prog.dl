@@ -24,7 +24,7 @@ fim.*/
 
 
 
-programa primo inicio
+/*programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
     
@@ -41,14 +41,14 @@ programa primo inicio
         i = i + 1;
     fim;
     escreva(eh_primo);
-fim.
+fim.*/
 
 
 
 /*programa phi_se inicio
     inteiro a, b;
-    leia(a);
-    a = a * 2;
+    a = 5;
+    a = a * +2;
     se (a == 10)
         b = a
     senao
@@ -67,7 +67,7 @@ fim.*/
     escreva(soma);
 fim.*/
 
-/*//Programa que determina se um número lido é primo ou não
+//Programa que determina se um número lido é primo ou não
 programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
@@ -76,7 +76,7 @@ programa primo inicio
     raio = 5;
     area = 3.1415 * raio * raio;
     
-    leia(num);
+    num = 7;
     i = 2;
     se (num <= 1)
         eh_primo = falso
@@ -96,4 +96,4 @@ programa primo inicio
         i = i^2;
         escreva(i);
     fim;
-fim.*/
+fim.

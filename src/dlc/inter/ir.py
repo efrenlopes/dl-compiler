@@ -64,6 +64,9 @@ class IR(Visitor):
     
 
     def bb_from_label(self, label):
+        return self.label_bb_map[label]
+
+    def __bb_from_label(self, label):
         if label not in self.label_bb_map:
             self.label_bb_map[label] = BasicBlock()
         return self.label_bb_map[label]
@@ -72,23 +75,38 @@ class IR(Visitor):
     def add_instr(self, instr: Instr, comment: str=None):
         match instr.op:
             case Operator.LABEL:
-                new_bb = self.bb_from_label(instr.result)
+                new_bb: BasicBlock = self.__bb_from_label(instr.result)
+                new_bb.label_instr = instr
                 self.bb_sequence.append(new_bb)
                 self.__bb_current = new_bb
+            case Operator.GOTO | Operator.IF:
+                for arg in (instr.arg2, instr.result):
+                    if arg.is_label:
+                        bb_target = self.__bb_from_label(arg)
+                        self.__bb_current.add_successor(bb_target)
+                self.__bb_current.goto_instr = instr
+            case Operator.PHI:
+                self.__bb_current.phi_instrs.append(instr)
+            case _:
+                self.__bb_current.body_instrs.append(instr)
 
-            case Operator.GOTO:
-                bb_target = self.bb_from_label(instr.result)
-                self.__bb_current.add_successor(bb_target)
-            
-            case Operator.IF:
-                bb_target = self.bb_from_label(instr.arg2)
-                bb_fall = self.bb_from_label(instr.result)
-                self.__bb_current.add_successor(bb_target)
-                self.__bb_current.add_successor(bb_fall)
-
-        self.__bb_current.instructions.append(instr)
         if comment:
             self.__comments[instr] = comment
+
+            
+            # case Operator.GOTO:
+            #     bb_target = self.bb_from_label(instr.result)
+            #     self.__bb_current.add_successor(bb_target)
+            
+            # case Operator.IF:
+            #     bb_target = self.bb_from_label(instr.arg2)
+            #     bb_fall = self.bb_from_label(instr.result)
+            #     self.__bb_current.add_successor(bb_target)
+            #     self.__bb_current.add_successor(bb_fall)
+
+        # self.__bb_current.instructions.append(instr)
+        # if comment:
+        #     self.__comments[instr] = comment
 
 
 
@@ -353,15 +371,15 @@ class IR(Visitor):
         elif isinstance(value, float):
             return c_double(value).value
 
-    @staticmethod
-    def operate_unary(op: Operator, value):
-        value = IR.OPS[op](value)
-        if isinstance(value, bool):
-            return value
-        elif isinstance(value, int):
-            return c_int32(value).value
-        elif isinstance(value, float):
-            return c_double(value).value
+    # @staticmethod
+    # def operate_unary(op: Operator, value):
+    #     value = IR.OPS[op](value)
+    #     if isinstance(value, bool):
+    #         return value
+    #     elif isinstance(value, int):
+    #         return c_int32(value).value
+    #     elif isinstance(value, float):
+    #         return c_double(value).value
 
     def interpret(self):
         mem = {}
@@ -384,7 +402,7 @@ class IR(Visitor):
                 
                 match op:
                     case Operator.PHI:
-                        value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna SSAOperand.EMPTY como valor padrão para o caso de PHIs inúteis
+                        value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna Operand.EMPTY como valor padrão para o caso de PHIs inúteis
                         mem[result] = value
                     case Operator.ALLOCA:
                         mem[result] = None
@@ -420,8 +438,6 @@ class IR(Visitor):
                         except ValueError:
                             print('Entrada de dados inválida! Interpretação encerrada.')
                             return
-                    #case SSAOperator.CONVERT | SSAOperator.PLUS | SSAOperator.MINUS | SSAOperator.NOT:
-                    #    mem[result] = SSA_IC.operate(op, value1, value2)
                     case Operator.MOVE:
                         mem[result] = value1
                     case _:
