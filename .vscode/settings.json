@@ -20,12 +20,7 @@
     "**/bower_components": true,
     "**/*.pyc": true
   },
-  "cSpell.words": [
-    "ALLOCA",
-    "defsites",
-    "idom",
-    "instrs",
-    "promovíveis",
-    "succ"
-  ]
+  "editor.fontSize": 20,
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "files.autoSave": "afterDelay",
 }
