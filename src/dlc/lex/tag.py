@@ -26,6 +26,8 @@ class Tag(Enum):
     LPAREN = '('
     RPAREN = ')'
 
+    EQ_EQ = '==='
+    
     #Palavras reservadas
     PROGRAM = 'programa'
     BEGIN = 'inicio'
@@ -47,7 +49,7 @@ class Tag(Enum):
     LIT_REAL = 'LIT_REAL'
 
     #Outros
-    UNK = 'UNK'
+    UNKNOWN = 'UNKNOWN'
     EOF = 'EOF'
     CONVERT = 'CONVERT'
         

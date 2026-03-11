@@ -4,6 +4,7 @@ import colorama
 
 from dlc.lex.tag import Tag
 from dlc.lex.token import Token
+from dlc.lex.trie import Trie
 
 
 class Lexer:
@@ -31,6 +32,18 @@ class Lexer:
                 Tag.LIT_FALSE 
             )
         }
+        #Trie
+        trie_list = (Tag.ASSIGN, Tag.SUM, Tag.SUB, Tag.MUL, Tag.DIV,
+                        Tag.MOD, Tag.POW, Tag.EQ, Tag.NE, Tag.NOT, Tag.LT, Tag.LE,
+                        Tag.GT, Tag.GE, Tag.OR, Tag.AND, Tag.SEMI, Tag.COMMA, Tag.DOT,
+                        Tag.LPAREN, Tag.RPAREN, Tag.EQ_EQ)
+
+        self.trie = Trie()
+        for t in trie_list:
+            self.trie.insert(t)
+        self.trie.print_tree()
+        #exit()
+
 
     def __error(self, line: int, msg: str) -> None:
         colorama.init()
@@ -83,93 +96,44 @@ class Lexer:
                 break
 
 
-        match self.peek:
-            case Tag.ASSIGN.value:
+        if self.peek.isdigit():
+            lex = ''
+            while self.peek.isdigit():
+                lex += self.peek
                 self.peek = next_char()
-                if self.peek == Tag.EQ.value[1]:
-                    self.peek = next_char()
-                    return Token(self.line, Tag.EQ)
-                return Token(self.line, Tag.ASSIGN)
-            case Tag.NOT.value:
+            if self.peek != '.':
+                return Token(self.line, Tag.LIT_INT, lex)
+            
+            while True:
+                lex += self.peek
                 self.peek = next_char()
-                if self.peek == Tag.NE.value[1]:
+                if not self.peek.isdigit():
+                    break
+            return Token(self.line, Tag.LIT_REAL, lex)
+        
+        elif self.peek.isalpha() or self.peek == '_':
+            lex = ''
+            while self.peek.isalnum() or self.peek == '_':
+                lex += self.peek
+                self.peek = next_char()
+            if lex in self.__words:
+                return Token(self.line, self.__words[lex])
+            return Token(self.line, Tag.ID, lex)
+        
+        elif self.peek == self.EOF_CHAR:
+            return Token(self.line, Tag.EOF)
+        
+        else:
+            lex = ''
+            node = self.trie.root
+            if self.peek not in node.children:
+                unk = self.peek
+                self.peek = next_char()
+                return Token(self.line, Tag.UNKNOWN, unk)
+            else:
+                while self.peek in node.children:
+                    node = node.children[self.peek]
+                    lex += self.peek
                     self.peek = next_char()
-                    return Token(self.line, Tag.NE)
-                return Token(self.line, Tag.NOT)
+                return Token(self.line, node.tag)
 
-            case Tag.SUM.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.SUM)
-            case Tag.SUB.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.SUB)
-            case Tag.MUL.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.MUL)
-            case Tag.MOD.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.MOD)
-            case Tag.POW.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.POW)
-            case Tag.OR.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.OR)
-            case Tag.AND.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.AND)
-            case Tag.LT.value:
-                self.peek = next_char()
-                if self.peek == Tag.LE.value[1]:
-                    self.peek = next_char()
-                    return Token(self.line, Tag.LE)
-                return Token(self.line, Tag.LT)
-            case Tag.GT.value:
-                self.peek = next_char()
-                if self.peek == Tag.GE.value[1]:
-                    self.peek = next_char()
-                    return Token(self.line, Tag.GE)
-                return Token(self.line, Tag.GT)
-            case Tag.SEMI.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.SEMI)
-            case Tag.COMMA.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.COMMA)
-            case Tag.DOT.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.DOT)
-            case Tag.LPAREN.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.LPAREN)
-            case Tag.RPAREN.value:
-                self.peek = next_char()
-                return Token(self.line, Tag.RPAREN)
-            case Lexer.EOF_CHAR:
-                return Token(self.line, Tag.EOF)
-            case _:
-                lex = ''
-                if self.peek.isdigit():
-                    while self.peek.isdigit():
-                        lex += self.peek
-                        self.peek = next_char()
-                    if self.peek != '.':
-                        return Token(self.line, Tag.LIT_INT, lex)
-                    
-                    while True:
-                        lex += self.peek
-                        self.peek = next_char()
-                        if not self.peek.isdigit():
-                            break
-                    return Token(self.line, Tag.LIT_REAL, lex)
-                elif self.peek.isalpha() or self.peek == '_':
-                    while self.peek.isalnum() or self.peek == '_':
-                        lex += self.peek
-                        self.peek = next_char()
-                    if lex in self.__words:
-                        return Token(self.line, self.__words[lex])
-                    return Token(self.line, Tag.ID, lex)
-
-        unk = self.peek
-        self.peek = next_char()
-        return Token(self.line, Tag.UNK, unk)

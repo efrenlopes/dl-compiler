@@ -7,6 +7,7 @@ from dlc.inter.ir import IR
 from dlc.inter.ssa import SSA
 from dlc.inter.ssa_opt import optimize_ssa
 from dlc.lex.lexer import Lexer
+from dlc.lex.tag import Tag
 from dlc.semantic.checker import Checker
 from dlc.syntax.parser import Parser
 
@@ -20,6 +21,12 @@ if __name__ == '__main__':
 
     #Análise Léxica
     lexer = Lexer(open(file_input, 'r'))
+    # token = lexer.next_token()
+    # while token.tag != Tag.EOF:
+    #     print(token)
+    #     token = lexer.next_token()
+    # exit()
+
 
     #Análise Sintática
     parser = Parser(lexer)

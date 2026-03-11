@@ -54,7 +54,7 @@ class Parser:
                     return 'literal inteiro'
                 case Tag.LIT_REAL:
                     return 'literal real'
-                case Tag.UNK:
+                case Tag.UNKNOWN:
                     return 'desconhecido'
                 case Tag.EOF:
                     return 'fim de arquivo'

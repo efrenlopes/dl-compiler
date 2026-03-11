@@ -5,8 +5,6 @@
         a = a + 1;
         escreva(a);
     fim;
-    a = 5 + 5^2;
-    escreva(a);
 fim.*/
 
 /*programa area_circulo inicio
