@@ -21,10 +21,12 @@ if __name__ == '__main__':
 
     #Análise Léxica
     lexer = Lexer(open(file_input, 'r'))
+    print(lexer.trie)
     # token = lexer.next_token()
     # while token.tag != Tag.EOF:
     #     print(token)
     #     token = lexer.next_token()
+    # print(token)
     # exit()
 
 
@@ -36,12 +38,14 @@ if __name__ == '__main__':
     print('\n**** AST ****')
     print(ast, '\n')
 
+
     #Análise Semântica
     checker = Checker(ast)
     if checker.had_errors:
         exit()
     print('\n**** AST com anotações semânticas ****')
-    #print(ast, '\n')
+    print(ast, '\n')
+
 
     #Geração de Código Intermediário
     ir = IR(ast)

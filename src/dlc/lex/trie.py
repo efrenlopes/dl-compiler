@@ -6,7 +6,7 @@ class TrieNode:
     def __init__(self) -> None:
         self.children = {}
         self.tag = None
-
+    
 
 class Trie:
 
@@ -14,39 +14,26 @@ class Trie:
         self.root = TrieNode()
 
     #Considera prefix-closed
-    def insert(self, tag: Tag) -> None:
+    def insert(self, tag: Tag, lexeme: str) -> None:
         node = self.root
-        for c in tag.value:
+        for c in lexeme:
             node = node.children.setdefault(c, TrieNode())
         node.tag = tag
 
-    def print_tree(self) -> None:
-        print("(root)")
-        children = list(self.root.children.items())
-        for i, (char, node) in enumerate(children):
-            last = i == len(children) - 1
-            self._print_node(char, node, "", last)
 
-    def _print_node(self, char, node, prefix, last):
-        branch = "└ " if last else "├ "
-        token_str = f"  ({node.tag})" if node.tag else ""
+    def __str__(self) -> str:
+        self.str_tree = ['.\n']
+        self.__str_trie(self.root, '', '')
+        return ''.join(self.str_tree)
 
-        print(f"{prefix}{branch}'{char}'{token_str}")
 
-        new_prefix = prefix + ("  " if last else "│ ")
-
+    def __str_trie(self, node:TrieNode, prefix:str, lexeme:str, is_last:bool = True) -> None:
+        connector = '└───' if is_last else '├───'
+        label = f"'{lexeme}'" if lexeme else '.'
+        if node.tag:
+            label += f' <{node.tag}>'
+        self.str_tree.append(f'{prefix}{connector}{label}\n')
+        new_prefix = f'{prefix}{"    " if is_last else "│   "}'
         children = list(node.children.items())
-        for i, (c, child) in enumerate(children):
-            child_last = i == len(children) - 1
-            self._print_node(c, child, new_prefix, child_last)
-
-
-if __name__ == '__main__':
-    trie = Trie()
-    trie.insert(Tag.ASSIGN)
-    trie.insert(Tag.EQ)
-    trie.insert(Tag.EQ_EQ)
-    trie.insert(Tag.LE)
-    trie.print_tree()
-
-    print(Tag.UNKNOWN)
+        for i, (char, child) in enumerate(children):
+            self.__str_trie(child, new_prefix, lexeme + char, i == len(children) - 1)

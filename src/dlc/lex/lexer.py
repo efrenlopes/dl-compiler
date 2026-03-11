@@ -2,6 +2,7 @@ from typing import TextIO
 
 import colorama
 
+from dlc.lex.lexemes import FIXED_LEXEMES
 from dlc.lex.tag import Tag
 from dlc.lex.token import Token
 from dlc.lex.trie import Trie
@@ -14,35 +15,22 @@ class Lexer:
         self.__input = input_stream
         self.line = 1
         self.peek = ' '
-        #Keywords
-        self.__words = { tag.value: tag
-            for tag in (
-                Tag.PROGRAM,
-                Tag.BEGIN,
-                Tag.END,
-                Tag.WRITE,
-                Tag.READ,
-                Tag.IF,
-                Tag.ELSE,
-                Tag.WHILE,
-                Tag.INT,
-                Tag.REAL,
-                Tag.BOOL,
-                Tag.LIT_TRUE,
-                Tag.LIT_FALSE 
-            )
-        }
-        #Trie
-        trie_list = (Tag.ASSIGN, Tag.SUM, Tag.SUB, Tag.MUL, Tag.DIV,
-                        Tag.MOD, Tag.POW, Tag.EQ, Tag.NE, Tag.NOT, Tag.LT, Tag.LE,
-                        Tag.GT, Tag.GE, Tag.OR, Tag.AND, Tag.SEMI, Tag.COMMA, Tag.DOT,
-                        Tag.LPAREN, Tag.RPAREN, Tag.EQ_EQ)
-
         self.trie = Trie()
+
+        #Palavras reservadas
+        self.__reserved_words = { lexeme: tag
+            for tag, lexeme in FIXED_LEXEMES.items()
+                if lexeme.isalpha()
+        }
+
+        #Trie
+        trie_list = [ tag
+            for tag, lexeme in FIXED_LEXEMES.items()
+                if not lexeme.isalpha()
+        ]
         for t in trie_list:
-            self.trie.insert(t)
-        self.trie.print_tree()
-        #exit()
+            self.trie.insert(t, FIXED_LEXEMES[t])
+        
 
 
     def __error(self, line: int, msg: str) -> None:
@@ -110,30 +98,33 @@ class Lexer:
                 if not self.peek.isdigit():
                     break
             return Token(self.line, Tag.LIT_REAL, lex)
-        
+
+
         elif self.peek.isalpha() or self.peek == '_':
             lex = ''
             while self.peek.isalnum() or self.peek == '_':
                 lex += self.peek
                 self.peek = next_char()
-            if lex in self.__words:
-                return Token(self.line, self.__words[lex])
+            if lex in self.__reserved_words:
+                return Token(self.line, self.__reserved_words[lex])
             return Token(self.line, Tag.ID, lex)
+        
         
         elif self.peek == self.EOF_CHAR:
             return Token(self.line, Tag.EOF)
         
+
         else:
             lex = ''
             node = self.trie.root
-            if self.peek not in node.children:
-                unk = self.peek
-                self.peek = next_char()
-                return Token(self.line, Tag.UNKNOWN, unk)
-            else:
+            if self.peek in node.children:
                 while self.peek in node.children:
                     node = node.children[self.peek]
                     lex += self.peek
                     self.peek = next_char()
                 return Token(self.line, node.tag)
+            else:
+                unk = self.peek
+                self.peek = next_char()
+                return Token(self.line, Tag.UNKNOWN, unk)
 

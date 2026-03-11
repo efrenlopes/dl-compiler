@@ -68,12 +68,7 @@ class LiteralNode(ExprNode):
 
     @property
     def raw_value(self):
-        if self.token.tag == Tag.LIT_TRUE:
-            return Tag.LIT_TRUE.value
-        elif self.token.tag == Tag.LIT_FALSE:
-            return Tag.LIT_FALSE.value
-        else:
-            return self.token.lexeme
+        return self.token.lexeme
     
     def accept(self, visitor: Visitor):
         return visitor.visit_literal_node(self)
@@ -100,8 +95,8 @@ class BinaryNode(ExprNode):
 
     def __str__(self):
         if self.type:
-            return f'{self.operator.value}:{self.type}'
-        return self.operator.value
+            return f'{self.token.lexeme}:{self.type}'
+        return self.token.lexeme
 
 
 
@@ -119,8 +114,8 @@ class UnaryNode(ExprNode):
 
     def __str__(self):
         if self.type:
-            return f'u{self.operator.value}:{self.type}'
-        return f'u{self.operator.value}'
+            return f'u{self.token.lexeme}:{self.type}'
+        return f'u{self.token.lexeme}'
 
 
 
@@ -139,8 +134,8 @@ class ConvertNode(ExprNode):
 
     def __str__(self):
         if self.type:
-            return f'{Tag.CONVERT.name}:{self.type}'        
-        return Tag.CONVERT.name
+            return f'convert:{self.type}'        
+        return 'convert'
 
 
 

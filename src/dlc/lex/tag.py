@@ -1,61 +1,59 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class Tag(Enum):
 
     #Operadores e delimitadores
-    ASSIGN = '='
-    SUM = '+'
-    SUB = '-'
-    MUL = '*'
-    DIV = '/'
-    MOD = '%'
-    POW = '^'
-    EQ = '=='
-    NE = '!='
-    NOT = '!'
-    LT = '<'
-    LE = '<='
-    GT = '>'
-    GE = '>='
-    OR = '|'
-    AND = '&'
-    SEMI = ';'
-    COMMA = ','
-    DOT = '.'
-    LPAREN = '('
-    RPAREN = ')'
-
-    EQ_EQ = '==='
+    ASSIGN = auto()
+    SUM = auto()
+    SUB = auto()
+    MUL = auto()
+    DIV = auto()
+    MOD = auto()
+    POW = auto()
+    EQ = auto()
+    NE = auto()
+    NOT = auto()
+    LT = auto()
+    LE = auto()
+    GT = auto()
+    GE = auto()
+    OR = auto()
+    AND = auto()
+    SEMI = auto()
+    COMMA = auto()
+    DOT = auto()
+    LPAREN = auto()
+    RPAREN = auto()
     
     #Palavras reservadas
-    PROGRAM = 'programa'
-    BEGIN = 'inicio'
-    END = 'fim'
-    WRITE = 'escreva'
-    READ = 'leia'
-    IF = 'se'
-    ELSE = 'senao'
-    WHILE = 'enquanto'
-    INT = 'inteiro'
-    REAL = 'real'
-    BOOL = 'booleano'
-    LIT_TRUE = 'verdade'
-    LIT_FALSE = 'falso'
+    PROGRAM = auto()
+    BEGIN = auto()
+    END = auto()
+    WRITE = auto()
+    READ = auto()
+    IF = auto()
+    ELSE = auto()
+    WHILE = auto()
+    INT = auto()
+    REAL = auto()
+    BOOL = auto()
+    LIT_TRUE = auto()
+    LIT_FALSE = auto()
 
     #ID e Literais numéricos
-    ID = 'ID'
-    LIT_INT = 'LIT_INT'
-    LIT_REAL = 'LIT_REAL'
+    ID = auto()
+    LIT_INT = auto()
+    LIT_REAL = auto()
 
     #Outros
-    UNKNOWN = 'UNKNOWN'
-    EOF = 'EOF'
-    CONVERT = 'CONVERT'
+    UNKNOWN = auto()
+    EOF = auto()
+    CONVERT = auto()
         
 
     def __str__(self) -> str:
-        return self.value
+        return self.name
     
     def __repr__(self) -> str:
         return f'<Tag: {self.name}>'

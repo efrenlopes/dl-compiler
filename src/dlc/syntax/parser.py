@@ -1,3 +1,4 @@
+from dlc.lex.lexemes import FIXED_LEXEMES
 from dlc.lex.tag import Tag
 from dlc.lex.token import Token
 from dlc.tree.ast import AST
@@ -44,24 +45,24 @@ class Parser:
     
     @staticmethod
     def tag_to_msg(tag: Tag):
-        if isinstance(tag.value, str):
-            return tag.value
-        else:
-            match tag:
-                case Tag.ID:
-                    return 'nome'
-                case Tag.LIT_INT:
-                    return 'literal inteiro'
-                case Tag.LIT_REAL:
-                    return 'literal real'
-                case Tag.UNKNOWN:
-                    return 'desconhecido'
-                case Tag.EOF:
-                    return 'fim de arquivo'
+        match tag:
+            case Tag.ID:
+                return 'nome'
+            case Tag.LIT_INT:
+                return 'literal inteiro'
+            case Tag.LIT_REAL:
+                return 'literal real'
+            case Tag.UNKNOWN:
+                return 'desconhecido'
+            case Tag.EOF:
+                return 'fim de arquivo'
+            case _:
+                return FIXED_LEXEMES[tag]
+
     
     @staticmethod
     def token_to_msg(token: Token):
-        if token.lexeme:
+        if token.tag in FIXED_LEXEMES:
             return token.lexeme
         else:
             return Parser.tag_to_msg(token.tag)

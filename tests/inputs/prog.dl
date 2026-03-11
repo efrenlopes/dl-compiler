@@ -10,6 +10,7 @@ fim.*/
 /*programa area_circulo inicio
   inteiro raio;
   booleano positivo;
+  positivo = verdade;
   raio = 5;
   positivo = (raio > 1 | raio == 1);
   se (positivo == verdade) inicio
@@ -99,4 +100,5 @@ programa primo inicio
         i = i^2;
         escreva(i);
     fim;
+    
 fim.
