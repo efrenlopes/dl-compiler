@@ -1,3 +1,10 @@
+"""Lexical analyzer for the DL compiler.
+
+This module provides the Lexer class which tokenizes source code input
+by reading characters from an input stream and producing tokens based on
+lexical rules for identifiers, numbers, operators, and reserved words.
+"""
+
 from typing import TextIO
 
 import colorama
@@ -9,9 +16,35 @@ from dlc.lex.trie import Trie
 
 
 class Lexer:
+    """Lexical analyzer for tokenizing source code.
+    
+    This class reads characters from an input stream and produces tokens
+    based on lexical rules for identifiers, numbers, operators, and reserved words.
+    
+    Attributes
+    ----------
+    EOF_CHAR : str
+        The end-of-file character marker.
+    line : int
+        The current line number in the input stream.
+    peek : str
+        The current character being examined.
+    trie : Trie
+        A trie data structure for efficient operator matching.
+
+    """
+
     EOF_CHAR = ''
 
     def __init__(self, input_stream: TextIO) -> None:
+        """Initialize the Lexer with an input stream.
+        
+        Parameters
+        ----------
+        input_stream : TextIO
+            The input stream to tokenize.
+
+        """
         self.__input = input_stream
         self.line = 1
         self.peek = ' '
@@ -34,6 +67,16 @@ class Lexer:
 
 
     def __error(self, line: int, msg: str) -> None:
+        """Report a lexical error and terminate execution.
+
+        Parameters
+        ----------
+        line : int
+            Line where the error occurred.
+        msg : str
+            Descriptive error message.
+
+        """
         colorama.init()
         print(colorama.Fore.RED, end='')
         print(f'Erro léxico na linha {line}: {msg}')
@@ -41,30 +84,59 @@ class Lexer:
         exit()
 
 
+
     def __next_char(self) -> str:
+        """Read the next character from the input stream.
+        
+        Updates the line counter if a newline character is encountered.
+        
+        Returns
+        -------
+        str
+            The next character from the input stream, or EOF_CHAR if end of file.
+            
+        """
         if (self.peek == '\n'):
             self.line += 1
         peek = self.__input.read(1)
         return peek
 
+
+
     def next_token(self) -> Token:
+        """Tokenize the next token from the input stream.
+        
+        Skips over whitespace and comments, then identifies and returns
+        the next token based on lexical rules for numbers, identifiers,
+        operators, and reserved words.
+        
+        Returns
+        -------
+        Token
+            The next token from the input stream.
+            
+        """
         next_char = self.__next_char
 
-        # Ignora comentários e espaços em braco
+        # ------------------------------------------------------------------
+        # 1. Skip whitespace and comments
+        # ------------------------------------------------------------------
         while True:
-            # 1. Ignora espaços
+
+            # Consume spaces, tabs and newlines
             while self.peek in (' ', '\n', '\t', '\r'):
                 self.peek = next_char()
             
-            # 2. Verifica se pode ser um comentário
+            # Check if the current character starts a comment
             if self.peek == '#':
                 self.peek = next_char()
-                # 2.1. Comentário de linha: #
+
+                # Line comment (#)
                 if self.peek != '#':
                     while self.peek != '\n' and self.peek != Lexer.EOF_CHAR: 
                         self.peek = next_char()
 
-                # 2.2. Comentário de bloco: ##
+                # Block comment (## ... ##)
                 else:
                     self.peek = next_char()
                     while self.peek != Lexer.EOF_CHAR:
@@ -75,15 +147,18 @@ class Lexer:
                                 break
                         else:
                             self.peek = next_char()
-                    # 2.2.1 Comentário de bloco não fechado
+
+                    # Unclosed comment block
                     else:
                         self.__error(self.line, 'Comentário não fechado!')
             
-            # 3. Não é comentário
+            # It is not a comment
             else:
                 break
 
-
+        # ------------------------------------------------------------------
+        # 2. Numeric literal recognition
+        # ------------------------------------------------------------------
         if self.peek.isdigit():
             lex = ''
             while self.peek.isdigit():
@@ -99,7 +174,9 @@ class Lexer:
                     break
             return Token(self.line, Tag.LIT_REAL, lex)
 
-
+        # ------------------------------------------------------------------
+        # 3. Identifiers and reserved words
+        # ------------------------------------------------------------------
         elif self.peek.isalpha() or self.peek == '_':
             lex = ''
             while self.peek.isalnum() or self.peek == '_':
@@ -109,11 +186,15 @@ class Lexer:
                 return Token(self.line, self.__reserved_words[lex])
             return Token(self.line, Tag.ID, lex)
         
-        
+        # ------------------------------------------------------------------
+        # 4. End of file
+        # ------------------------------------------------------------------        
         elif self.peek == self.EOF_CHAR:
             return Token(self.line, Tag.EOF)
         
-
+        # ------------------------------------------------------------------
+        # 5. Operators and delimiters (via trie)
+        # ------------------------------------------------------------------
         else:
             lex = ''
             node = self.trie.root

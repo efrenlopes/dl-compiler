@@ -21,8 +21,13 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle (erros de estilo)
-    "F",    # Pyflakes (erros de lógica)
-    "I",    # isort (organização de imports)
-    "ANN",  # flake8-annotations (Type Hints)
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # imports
+    "D",    # docstrings
+    "ANN",  # type hints
+    "UP",   # modern python
+    "B",    # bugbear
+    "SIM",  # simplifications
+    "C4",   # comprehensions
 ]

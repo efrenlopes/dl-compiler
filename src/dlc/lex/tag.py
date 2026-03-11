@@ -1,7 +1,19 @@
+"""Token tags for the lexer.
+
+This module defines all the token types (tags) used by the lexer to classify
+and represent tokens in the DL compiler, including operators, delimiters,
+reserved words, identifiers, numeric literals, and special tokens.
+"""
 from enum import Enum, auto
 
 
 class Tag(Enum):
+    """Token tags for the DL compiler lexer.
+    
+    This enumeration defines all token types used by the lexer to classify
+    tokens, including operators, delimiters, reserved words, identifiers,
+    numeric literals, and special tokens.
+    """
 
     #Operadores e delimitadores
     ASSIGN = auto()
@@ -53,7 +65,9 @@ class Tag(Enum):
         
 
     def __str__(self) -> str:
+        """Return the name of the tag."""
         return self.name
     
     def __repr__(self) -> str:
+        """Return a detailed string representation of the tag."""
         return f'<Tag: {self.name}>'

@@ -62,10 +62,10 @@ class Parser:
     
     @staticmethod
     def token_to_msg(token: Token):
-        if token.tag in FIXED_LEXEMES:
+        #if token.tag in FIXED_LEXEMES:
             return token.lexeme
-        else:
-            return Parser.tag_to_msg(token.tag)
+        #else:
+        #    return Parser.tag_to_msg(token.tag)
         
     def __match(self, tag: Tag):
         if self.lookahead.tag == tag:
