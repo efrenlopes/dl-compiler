@@ -1,16 +1,17 @@
 from dlc.lex.tag import Tag
 
+
 class Token:
     
-    def __init__(self, line:int, tag: Tag, lexeme: str=None):
+    def __init__(self, line: int, tag: Tag, lexeme: str|None=None) -> None:
         self.line = line
         self.tag = tag
         self.lexeme = lexeme
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.lexeme:
             return f"<{self.tag.name}, '{self.lexeme}'>"
         return f'<{self.tag.name}>'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Token: {str(self)} at line {self.line}>'

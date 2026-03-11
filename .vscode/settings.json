@@ -23,4 +23,5 @@
   "editor.fontSize": 20,
   "editor.defaultFormatter": "charliermarsh.ruff",
   "files.autoSave": "afterDelay",
+  "python.analysis.typeCheckingMode": "strict",
 }

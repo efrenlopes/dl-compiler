@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Tag(Enum):
 
     #Operadores e delimitadores
@@ -51,8 +52,8 @@ class Tag(Enum):
     CONVERT = 'CONVERT'
         
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Tag: {self.name}>'

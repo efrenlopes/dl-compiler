@@ -1,14 +1,14 @@
-import sys
 import subprocess
+import sys
 from pathlib import Path
-from dlc.inter.ssa_opt import optimize_ssa
-from dlc.inter.ssa import SSA
-from dlc.inter.ir import IR
-from dlc.codegen.codegen_x64 import CodeGeneratorX64
-from dlc.lex.lexer import Lexer
-from dlc.syntax.parser import Parser
-from dlc.semantic.checker import Checker
 
+from dlc.codegen.codegen_x64 import CodeGeneratorX64
+from dlc.inter.ir import IR
+from dlc.inter.ssa import SSA
+from dlc.inter.ssa_opt import optimize_ssa
+from dlc.lex.lexer import Lexer
+from dlc.semantic.checker import Checker
+from dlc.syntax.parser import Parser
 
 if __name__ == '__main__':
     #Entrada

@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
-from dlc.lex.tag import Tag
+
 from dlc.lex.lexer import Token
+from dlc.lex.tag import Tag
 from dlc.tree.visitor import Visitor
 
 
 class Node(ABC):
     
-    def __init__(self, token: Token):
+    def __init__(self, token: Token) -> None:
         self.token = token
     
     @property
