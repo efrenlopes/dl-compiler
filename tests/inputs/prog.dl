@@ -1,13 +1,13 @@
-/*programa test inicio
+##programa test inicio
     inteiro a;
     a = 0;
     enquanto (a < 10) inicio
         a = a + 1;
         escreva(a);
     fim;
-fim.*/
+fim.##
 
-/*programa area_circulo inicio
+##programa area_circulo inicio
   inteiro raio;
   booleano positivo;
   positivo = verdade;
@@ -18,12 +18,12 @@ fim.*/
     area = 3.1415 * raio * raio;
     escreva(area);
   fim;
-fim.*/
+fim.##
 
 
 
 
-/*programa primo inicio
+##programa primo inicio
     inteiro i, num;
     booleano eh_primo; 
     
@@ -40,11 +40,11 @@ fim.*/
         i = i + 1;
     fim;
     escreva(eh_primo);
-fim.*/
+fim.##
 
 
 
-/*programa phi_se inicio
+##programa phi_se inicio
     inteiro a, b, c;
     leia(a);
     a = a * +2;
@@ -57,10 +57,10 @@ fim.*/
     fim;
     escreva(b);
     escreva(c);
-fim.*/
+fim.##
 
 
-/*programa teste_laco inicio
+##programa teste_laco inicio
     inteiro i, soma;
     i = 1;
     leia(soma);
@@ -69,9 +69,9 @@ fim.*/
         i = i + 1;
     fim;
     escreva(soma);
-fim.*/
+fim.##
 
-//Programa que determina se um número lido é primo ou não
+# Programa que determina se um número lido é primo ou não
 programa primo inicio
     inteiro i, num;
     booleano eh_primo; 

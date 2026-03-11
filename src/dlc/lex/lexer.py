@@ -57,19 +57,20 @@ class Lexer:
                 self.peek = next_char()
             
             # 2. Verifica se pode ser um comentário
-            if self.peek == '/':
+            if self.peek == '#':
                 self.peek = next_char()
-                # 2.1. Comentário de linha: //
-                if self.peek == '/':
+                # 2.1. Comentário de linha: #
+                if self.peek != '#':
                     while self.peek != '\n' and self.peek != Lexer.EOF_CHAR: 
                         self.peek = next_char()
-                # 2.2. Comentário de bloco: /*
-                elif self.peek == '*':
+
+                # 2.2. Comentário de bloco: ##
+                else:
                     self.peek = next_char()
                     while self.peek != Lexer.EOF_CHAR:
-                        if self.peek == '*':
+                        if self.peek == '#':
                             self.peek = next_char()
-                            if self.peek == '/':
+                            if self.peek == '#':
                                 self.peek = next_char()
                                 break
                         else:
@@ -77,9 +78,8 @@ class Lexer:
                     # 2.2.1 Comentário de bloco não fechado
                     else:
                         self.__error(self.line, 'Comentário não fechado!')
-                # 2.3. Token de divisão
-                else:
-                    return Token(self.line, Tag.DIV)
+            
+            # 3. Não é comentário
             else:
                 break
 
