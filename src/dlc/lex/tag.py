@@ -65,9 +65,7 @@ class Tag(Enum):
         
 
     def __str__(self) -> str:
-        """Return the name of the tag."""
         return self.name
     
     def __repr__(self) -> str:
-        """Return a detailed string representation of the tag."""
         return f'<Tag: {self.name}>'

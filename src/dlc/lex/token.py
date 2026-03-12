@@ -27,18 +27,6 @@ class Token:
     inter_lexeme: str | None
 
     def __init__(self, line: int, tag: Tag, lexeme: str|None=None) -> None:
-        """Initialize a Token instance.
-        
-        Parameters
-        ----------
-        line : int
-            The line number where the token appears.
-        tag : Tag
-            The token's tag identifying its type.
-        lexeme : str|None, optional
-            The token's lexeme value (default is None).
-
-        """
         self.line = line
         self.tag = tag
         self.inter_lexeme = lexeme
@@ -60,27 +48,10 @@ class Token:
 
 
     def __str__(self) -> str:
-        """Return a string representation of the token.
-        
-        Returns
-        -------
-        str
-            A formatted string showing the token's tag and lexeme.
-        
-        """
         if self.inter_lexeme:
             return f"<{self.tag.name}, '{self.inter_lexeme}'>"
         return f'<{self.tag.name}>'
 
 
     def __repr__(self) -> str:
-        """Return a detailed representation of the token.
-        
-        Returns
-        -------
-        str
-            A formatted string showing the token's string representation and 
-            line number.
-        
-        """
         return f'<Token: {str(self)} at line {self.line}>'

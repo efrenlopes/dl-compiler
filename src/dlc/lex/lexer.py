@@ -41,14 +41,6 @@ class Lexer:
     trie: Trie
 
     def __init__(self, input_stream: TextIO) -> None:
-        """Initialize the Lexer with an input stream.
-        
-        Parameters
-        ----------
-        input_stream : TextIO
-            The input stream to tokenize.
-
-        """
         self.__input = input_stream
         self.line = 1
         self.peek = ' '

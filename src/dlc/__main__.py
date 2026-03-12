@@ -44,6 +44,7 @@ if __name__ == '__main__':
     print('\n**** AST ****')
     print(ast, '\n')
 
+    exit()
 
     #Análise Semântica
     checker = Checker(ast)

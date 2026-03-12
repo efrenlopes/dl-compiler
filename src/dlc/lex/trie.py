@@ -61,7 +61,6 @@ class Trie:
             node = node.children.setdefault(c, TrieNode(tag))
 
     def __str__(self) -> str:
-        """Return a string representation of the Trie structure without the root."""
         self.str_tree: list[str] = ['.\n']
         children = list(self.root.children.items())
         for i, (char, n) in enumerate(children):
@@ -70,20 +69,6 @@ class Trie:
 
     def __str_trie(self, node: TrieNode, prefix: str,
                         lexeme: str, is_last: bool = True) -> None:
-        """Recursively build a string representation of the Trie structure.
-        
-        Parameters
-        ----------
-        node : TrieNode
-            The current node being processed.
-        prefix : str
-            The prefix string for tree formatting.
-        lexeme : str
-            The lexeme accumulated so far.
-        is_last : bool
-            Whether this node is the last child of its parent.
-
-        """
         connector = '└───' if is_last else '├───'
         label = f"'{lexeme}' <{node.tag}>"
         self.str_tree.append(f'{prefix}{connector}{label}\n')        

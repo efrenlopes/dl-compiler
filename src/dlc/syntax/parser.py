@@ -3,11 +3,14 @@
 This module contains the Parser class which performs syntax analysis
 on tokens produced by the lexer and builds an abstract syntax tree.
 """
+from typing import NoReturn
+
 import colorama
 
 from dlc.lex.lexemes import FIXED_LEXEMES
 from dlc.lex.lexer import Lexer
 from dlc.lex.tag import Tag
+from dlc.lex.token import Token
 from dlc.tree.ast import AST
 from dlc.tree.nodes import (
     AssignNode,
@@ -30,24 +33,34 @@ class Parser:
     """Parser for the DL compiler.
     
     Performs syntax analysis on tokens produced by the lexer and builds
-    an abstract syntax tree (AST) for the DL programming language.
+    an abstract syntax tree (AST) according to the DL language grammar.
+    
+    Attributes
+    ----------
+    lexer : Lexer
+        The lexer instance that provides tokens.
+    lookahead : Token
+        The current token being analyzed.
+    ast : AST
+        The abstract syntax tree built during parsing.
+    had_errors : bool
+        Flag indicating whether syntax errors were encountered.
+
     """
     
+    lexer: Lexer
+    lookahead: Token
+    ast: AST
+    had_errors: bool
+    
     def __init__(self, lex: Lexer) -> None:
-        """Initialize the parser with a lexer and perform parsing.
-        
-        Args:
-            lex: The Lexer instance to tokenize the input.
-        
-        """
         self.lexer = lex
-        self.lookahead = None
-        self.ast = None
+        self.lookahead = lex.next_token()
         self.had_errors = False
-        self.__move()
         self.__parse()
 
-    def __error(self, line: int, msg: str):
+    
+    def __error(self, line: int, msg: str) -> NoReturn:
         colorama.init()
         print(colorama.Fore.RED, end='')
         print(f'Erro sintático na linha {line}: {msg}')
@@ -55,13 +68,15 @@ class Parser:
         self.had_errors = True
         raise SyntaxError()
 
-    def __move(self):
+    
+    def __move(self) -> Token:
         save = self.lookahead
         self.lookahead = self.lexer.next_token()
         return save
     
+    
     @staticmethod
-    def tag_to_msg(tag: Tag):
+    def __tag_to_msg(tag: Tag) -> str:
         match tag:
             case Tag.ID:
                 return 'nome'
@@ -77,13 +92,17 @@ class Parser:
                 return FIXED_LEXEMES[tag]
 
     
-    def __match(self, tag: Tag):
+    def __match(self, tag: Tag) -> Token:
         if self.lookahead.tag == tag:
             return self.__move()
-        self.__error(self.lookahead.line, f'Esperado "{Parser.tag_to_msg(tag)}", mas encontrado "{self.lookahead.lexeme}"')
+        look = self.lookahead
+        self.__error(look.line,
+                f'Esperado "{Parser.__tag_to_msg(tag)}", mas achou "{look.lexeme}"')
 
+    
     def __synchronize(self):
-        while self.lookahead.tag not in (Tag.EOF, Tag.BEGIN, Tag.IF, Tag.WRITE, Tag.INT, Tag.REAL, Tag.BOOL, Tag.END):
+        while self.lookahead.tag not in (Tag.EOF, Tag.BEGIN, Tag.IF, Tag.WRITE, 
+                                            Tag.INT, Tag.REAL, Tag.BOOL, Tag.END):
             self.__move()
 
     def __parse(self):
