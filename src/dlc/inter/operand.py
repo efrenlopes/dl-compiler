@@ -1,84 +1,83 @@
 from abc import ABC, abstractmethod
+
 from dlc.inter.basic_block import BasicBlock
 from dlc.semantic.type import Type
 
 
 class Operand(ABC):
     @property
-    def is_temp(self): return False
+    def is_temp(self) -> bool: return False
 
     @property
-    def is_temp_version(self): return False
+    def is_temp_version(self) -> bool: return False
 
     @property
-    def is_phi(self): return False
+    def is_phi(self) -> bool: return False
 
     @property
-    def is_const(self): return False
+    def is_const(self) -> bool: return False
 
     @property
-    def is_label(self): return False
+    def is_label(self) -> bool: return False
 
     @abstractmethod
-    def __str__(self):
-        pass
+    def __str__(self) -> str: pass
 
 
 
 class Temp(Operand):
     __count = -1
     
-    def __init__(self, type: Type, is_address: bool=False):
+    def __init__(self, type: Type, is_address: bool=False) -> None:
         Temp.__count = Temp.__count + 1
         self.number = Temp.__count
         self.type = type
         self.is_address = is_address
     
     @property
-    def name(self):
+    def name(self) -> str:
         return f't{self.number}'
     
     @property
-    def is_temp(self):
+    def is_temp(self) -> bool:
         return True
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<ir_temp: {self.name}>'
 
 
 class TempVersion(Operand):
     
-    def __init__(self, origin:Temp, version: int):
+    def __init__(self, origin:Temp, version: int) -> None:
         self.origin = origin
         self.type = origin.type
         self.version = version
     
     @property
-    def name(self):
+    def name(self) -> str:
         return f't{self.origin.number}_{self.version}'
     
     @property
-    def is_temp_version(self):
+    def is_temp_version(self) -> bool:
         return True
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<ir_temp_version: {self.name}>'
 
 
 
 
 class Phi(Operand):
-    def __init__(self):
-        # BasicBlock para SSATempVersion
+    def __init__(self) -> None:
         self.paths = {} 
 
-    def add_path(self, block: BasicBlock, value: Operand):
+    def add_path(self, block: BasicBlock, value: Operand) -> None:
         self.paths[block] = value
 
     @property

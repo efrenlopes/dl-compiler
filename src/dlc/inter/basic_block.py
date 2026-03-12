@@ -2,7 +2,7 @@ class BasicBlock:
     
     __count = -1
 
-    def __init__(self):
+    def __init__(self) -> None:
         BasicBlock.__count += 1
         self.number = BasicBlock.__count
         #bb sections

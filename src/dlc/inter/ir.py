@@ -143,7 +143,7 @@ class IR(Visitor[Temp | None]):
             temp = Temp(var.type, True)
             key = (var.name, var.scope)
             self.__var_temp_map[key] = temp
-            comment = f'var {var.name} [scope={var.scope}]'
+            comment = f'var {var.name} [type={var.type}, scope={var.scope}]'
             self.add_instr( Instr(Operator.ALLOCA, Operand.EMPTY, Operand.EMPTY, temp), comment)
         
 

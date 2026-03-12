@@ -29,6 +29,6 @@ class Operator(Enum):
     STORE = 'store'
     LOAD = 'load'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 

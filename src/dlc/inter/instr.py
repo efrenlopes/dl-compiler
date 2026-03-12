@@ -1,47 +1,49 @@
-from dlc.inter.operator import Operator
 from dlc.inter.operand import Operand
-
+from dlc.inter.operator import Operator
 
 
 class Instr:
-    def __init__(self, op: Operator, arg1: Operand, arg2: Operand, result: Operand):
+    def __init__(self, op: Operator, 
+                 arg1: Operand, arg2: Operand, result: Operand) -> None:
         self.op = op
         self.arg1 = arg1
         self.arg2 = arg2
         self.result = result
             
-    def __str__(self):
+    def __str__(self) -> str:
         op = self.op
         arg1 = self.arg1
         arg2 = self.arg2
         result = self.result
-        
+        OP = Operator
         match op:
-            case Operator.MOVE: 
+            case OP.MOVE: 
                 return f'{result} {op} {arg1}'
-            case Operator.LABEL: 
+            case OP.LABEL: 
                 return f'{result}:'
-            case Operator.IF:
-                return f'{op} {arg1} {Operator.GOTO} {arg2} else {Operator.GOTO} {result}'
-            case Operator.GOTO: 
+            case OP.IF:
+                return f'{op} {arg1} {OP.GOTO} {arg2} else {OP.GOTO} {result}'
+            case OP.GOTO: 
                 return f'{op} {result}'
-            case Operator.CONVERT | Operator.PLUS | Operator.MINUS | Operator.NOT:
-                return f'{result} {Operator.MOVE} {op} {arg1}'
-            case Operator.PRINT: 
+            case OP.CONVERT | OP.PLUS | OP.MINUS | OP.NOT:
+                return f'{result} {OP.MOVE} {op} {arg1}'
+            case OP.PRINT: 
                 return f'{op} {arg1}'
-            case Operator.READ:
+            case OP.READ:
                 return f'{op} {result}'
-            case Operator.PHI:
-                return f'{result} {Operator.MOVE} {Operator.PHI}({", ".join(f"{bb}: {ver}" for bb, ver in arg1.paths.items())})'
-            case Operator.ALLOCA:
-                return f'{result} {Operator.MOVE} {Operator.ALLOCA} {result.type}'
-            case Operator.STORE:
-                return f'{Operator.STORE} {arg1}, {result}'
-            case Operator.LOAD:
-                return f'{result} {Operator.MOVE} {Operator.LOAD} {arg1}'
+            case OP.PHI:
+                return (f'{result} {OP.MOVE} {OP.PHI}('
+                        f'{", ".join(f"{bb}: {ver}" for bb, ver in arg1.paths.items())})')
+            case OP.ALLOCA:
+                return f'{result} {OP.MOVE} {OP.ALLOCA}'
+            case OP.STORE:
+                return f'{OP.STORE} {arg1}, {result}'
+            case OP.LOAD:
+                return f'{result} {OP.MOVE} {OP.LOAD} {arg1}'
 
             case _: 
-                return f'{result} {Operator.MOVE} {arg1} {op} {arg2}'
+                return f'{result} {OP.MOVE} {arg1} {op} {arg2}'
 
-    def __repr__(self):
+
+    def __repr__(self) -> str:
         return f'<Instr: {self.op}>'

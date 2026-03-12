@@ -89,6 +89,7 @@ class Checker(Visitor[None]):
         else:
             self.__error(node.var.line, f'"{node.var.name}" não declarada!')
 
+
     @staticmethod
     def widening(expr: ExprNode, type: Type) -> ExprNode:
         if expr.type == type:
@@ -206,7 +207,6 @@ class Checker(Visitor[None]):
         node.expr.accept(self)
         type = node.expr.type
 
-        #node.type = Type.UNDEF
         match node.operator:
             case Tag.SUM | Tag.SUB:
                 if type.is_numeric:
