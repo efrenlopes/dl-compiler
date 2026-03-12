@@ -18,11 +18,12 @@ class TrieNode:
 
     """
     
-    def __init__(self) -> None:
+    def __init__(self, tag: Tag) -> None:
         """Initialize an empty TrieNode."""
         self.children: dict[str, TrieNode] = {}
-        self.tag: Tag = Tag.UNKNOWN
+        self.tag = tag
     
+
 
 class Trie:
     """A Trie (prefix tree) data structure for efficient lexeme storage and retrieval.
@@ -41,7 +42,7 @@ class Trie:
 
     def __init__(self) -> None:
         """Initialize a Trie with an empty root node."""
-        self.root = TrieNode()
+        self.root = TrieNode(Tag.UNKNOWN)
 
 
     def insert(self, tag: Tag, lexeme: str) -> None:
@@ -57,16 +58,15 @@ class Trie:
         """
         node = self.root
         for c in lexeme:
-            node = node.children.setdefault(c, TrieNode())
-        node.tag = tag
-
+            node = node.children.setdefault(c, TrieNode(tag))
 
     def __str__(self) -> str:
-        """Return a string representation of the Trie structure."""
-        self.str_tree = ['.\n']
-        self.__str_trie(self.root, '', '')
+        """Return a string representation of the Trie structure without the root."""
+        self.str_tree: list[str] = ['.\n']
+        children = list(self.root.children.items())
+        for i, (char, n) in enumerate(children):
+            self.__str_trie(n, '', char, i == len(children) - 1)
         return ''.join(self.str_tree)
-
 
     def __str_trie(self, node: TrieNode, prefix: str,
                         lexeme: str, is_last: bool = True) -> None:
@@ -85,10 +85,8 @@ class Trie:
 
         """
         connector = '└───' if is_last else '├───'
-        label = f"'{lexeme}'" if lexeme else '.'
-        if node.tag:
-            label += f' <{node.tag}>'
-        self.str_tree.append(f'{prefix}{connector}{label}\n')
+        label = f"'{lexeme}' <{node.tag}>"
+        self.str_tree.append(f'{prefix}{connector}{label}\n')        
         new_prefix = f'{prefix}{"    " if is_last else "│   "}'
         children = list(node.children.items())
         for i, (char, child) in enumerate(children):

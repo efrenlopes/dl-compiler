@@ -1,3 +1,9 @@
+"""Main entry point for the DL compiler.
+
+This module orchestrates the compilation pipeline for the DL programming language,
+including lexical analysis, syntax parsing, semantic checking, intermediate code
+generation, SSA optimization, and x64 code generation.
+"""
 import subprocess
 import sys
 from pathlib import Path
@@ -21,7 +27,7 @@ if __name__ == '__main__':
 
     #Análise Léxica
     lexer = Lexer(open(file_input, 'r'))
-    print(lexer.trie)
+    # print(lexer.trie)
     # token = lexer.next_token()
     # while token.tag != Tag.EOF:
     #     print(token)

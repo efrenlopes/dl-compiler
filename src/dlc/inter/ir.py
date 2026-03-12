@@ -107,7 +107,7 @@ class IR(Visitor):
                 dot.edge(str(bb), str(s))
             #for s in bb.predecessors:
             #    dot.edge(str(bb), str(s), color="red")
-        dot.render('out/teste_fluxo', view=True) 
+        dot.render('out/teste_fluxo', view=False) 
 
 
 

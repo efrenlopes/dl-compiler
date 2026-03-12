@@ -60,17 +60,10 @@ class Parser:
                 return FIXED_LEXEMES[tag]
 
     
-    @staticmethod
-    def token_to_msg(token: Token):
-        #if token.tag in FIXED_LEXEMES:
-            return token.lexeme
-        #else:
-        #    return Parser.tag_to_msg(token.tag)
-        
     def __match(self, tag: Tag):
         if self.lookahead.tag == tag:
             return self.__move()
-        self.__error(self.lookahead.line, f'Esperado "{Parser.tag_to_msg(tag)}", mas encontrado "{Parser.token_to_msg(self.lookahead)}"')
+        self.__error(self.lookahead.line, f'Esperado "{Parser.tag_to_msg(tag)}", mas encontrado "{self.lookahead.lexeme}"')
 
     def __synchronize(self):
         while self.lookahead.tag not in (Tag.EOF, Tag.BEGIN, Tag.IF, Tag.WRITE, Tag.INT, Tag.REAL, Tag.BOOL, Tag.END):
@@ -125,7 +118,7 @@ class Parser:
             case Tag.READ:
                 return self.__read()
             case _: 
-                self.__error(self.lookahead.line, f'"{Parser.token_to_msg(self.lookahead)}" não é um comando válido!')
+                self.__error(self.lookahead.line, f'"{self.lookahead.lexeme}" não é um comando válido!')
 
 
     def __decl(self):
@@ -257,5 +250,5 @@ class Parser:
                 var_tok = self.__move()
                 expr = VarNode(var_tok)
             case _:
-                self.__error(self.lookahead.line, f'"{Parser.token_to_msg(self.lookahead)}" invalidou a expressão!')
+                self.__error(self.lookahead.line, f'"{self.lookahead.lexeme}" invalidou a expressão!')
         return expr

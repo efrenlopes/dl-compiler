@@ -47,15 +47,12 @@ class Token:
         Returns
         -------
         str
-            The lexeme value, either from inter_lexeme, FIXED_LEXEMES, or the tag name.
+            The lexeme value, either from inter_lexeme or FIXED_LEXEMES.
         
         """
         if self.inter_lexeme:
             return self.inter_lexeme
-        elif self.tag in FIXED_LEXEMES:
-            return FIXED_LEXEMES[self.tag]
-        else:
-            return self.tag.name
+        return FIXED_LEXEMES[self.tag]
 
 
     def __str__(self) -> str:
