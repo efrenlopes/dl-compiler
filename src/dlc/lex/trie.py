@@ -3,6 +3,8 @@
 The structure allows efficient recognition of multi-character operators
 using the maximal-munch strategy.
 """
+from __future__ import annotations
+
 from dlc.lex.tag import Tag
 
 
@@ -19,7 +21,7 @@ class TrieNode:
     """
     
     tag: Tag
-    children: dict[str, 'TrieNode']
+    children: dict[str, TrieNode]
 
     def __init__(self, tag: Tag) -> None:
         """Initialize an empty TrieNode."""
