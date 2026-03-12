@@ -73,11 +73,11 @@ fim.##
 
 # Programa que determina se um número lido é primo ou não
 programa primo inicio
-    inteiro i, num;
+    inteir i, num;
     booleano eh_primo; 
     
     real raio, area;
-    raio = 5;
+    raio = 5
     area = 3.1415 * raio * raio;
     
     num = 7;

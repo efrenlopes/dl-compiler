@@ -18,10 +18,12 @@ from dlc.tree.nodes import (
     BlockNode,
     DeclNode,
     ElseNode,
+    ExprNode,
     IfNode,
     LiteralNode,
     ProgramNode,
     ReadNode,
+    StmtNode,
     UnaryNode,
     VarNode,
     WhileNode,
@@ -95,34 +97,33 @@ class Parser:
     def __match(self, tag: Tag) -> Token:
         if self.lookahead.tag == tag:
             return self.__move()
-        look = self.lookahead
-        self.__error(look.line,
-                f'Esperado "{Parser.__tag_to_msg(tag)}", mas achou "{look.lexeme}"')
-
+        expected = Parser.__tag_to_msg(tag)
+        found = self.lookahead.lexeme
+        self.__error(self.lookahead.line, f'Esperado "{expected}", mas achou "{found}"')
     
-    def __synchronize(self):
+    def __synchronize(self) -> None:
         while self.lookahead.tag not in (Tag.EOF, Tag.BEGIN, Tag.IF, Tag.WRITE, 
                                             Tag.INT, Tag.REAL, Tag.BOOL, Tag.END):
             self.__move()
 
-    def __parse(self):
-        root = self.__program()
-        self.ast = AST(root)
-
-    def __program(self):
+    def __parse(self) -> None:
         try:
-            match = self.__match
-            prog_tok = match(Tag.PROGRAM)
-            prog_name_tok = match(Tag.ID)
-            stmt = self.__stmt()
-            match(Tag.DOT)
-            match(Tag.EOF)
-            return ProgramNode(prog_tok, prog_name_tok.lexeme, stmt)
+            root = self.__program()
+            self.ast = AST(root)
         except SyntaxError:
-            pass
+           pass
+
+    def __program(self) -> ProgramNode:
+        match = self.__match
+        prog_tok = match(Tag.PROGRAM)
+        prog_name_tok = match(Tag.ID)
+        stmt = self.__stmt()
+        match(Tag.DOT)
+        match(Tag.EOF)
+        return ProgramNode(prog_tok, prog_name_tok.lexeme, stmt)
 
 
-    def __block(self):
+    def __block(self) -> BlockNode:
         match = self.__match
         begin_tok = match(Tag.BEGIN)
         block = BlockNode(begin_tok)
@@ -137,7 +138,7 @@ class Parser:
         return block
 
 
-    def __stmt(self):
+    def __stmt(self) -> StmtNode:
         match self.lookahead.tag:
             case Tag.BEGIN: 
                 return self.__block()
@@ -154,10 +155,11 @@ class Parser:
             case Tag.READ:
                 return self.__read()
             case _: 
-                self.__error(self.lookahead.line, f'"{self.lookahead.lexeme}" não é um comando válido!')
+                self.__error(self.lookahead.line, 
+                        f'"{self.lookahead.lexeme}" não é um comando válido!')
 
 
-    def __decl(self):
+    def __decl(self) -> DeclNode:
         match = self.__match
         type_tok = self.__move()
         var = VarNode(match(Tag.ID))
@@ -169,7 +171,7 @@ class Parser:
             decl_node.add_var(var)
         return decl_node
 
-    def __assign(self):
+    def __assign(self) -> AssignNode:
         match = self.__match
         var_tok = match(Tag.ID)
         match(Tag.ASSIGN)
@@ -177,7 +179,7 @@ class Parser:
         var = VarNode(var_tok)
         return AssignNode(var_tok, var, expr)
 
-    def __if(self):
+    def __if(self) -> IfNode | ElseNode:
         match = self.__match
         if_tok = match(Tag.IF)
         match(Tag.LPAREN)
@@ -190,7 +192,7 @@ class Parser:
         stmt2 = self.__stmt()
         return ElseNode(if_tok, expr, stmt1, stmt2)
 
-    def __while(self):
+    def __while(self) -> WhileNode:
         match = self.__match
         while_tok = match(Tag.WHILE)
         match(Tag.LPAREN)
@@ -199,7 +201,7 @@ class Parser:
         stmt = self.__stmt()
         return WhileNode(while_tok, expr, stmt)
 
-    def __write(self):
+    def __write(self) -> WriteNode:
         match = self.__match
         write_tok = match(Tag.WRITE)
         match(Tag.LPAREN)
@@ -207,7 +209,7 @@ class Parser:
         match(Tag.RPAREN)
         return WriteNode(write_tok, expr)
 
-    def __read(self):
+    def __read(self) -> ReadNode:
         match = self.__match
         read_tok = match(Tag.READ)
         match(Tag.LPAREN)
@@ -215,63 +217,63 @@ class Parser:
         match(Tag.RPAREN)
         return ReadNode(read_tok, var)
 
-    def __expr(self):
+    def __expr(self) -> ExprNode:
         expr = self.__land()
         while self.lookahead.tag == Tag.OR:
             op_tok = self.__move()
             expr = BinaryNode(op_tok, expr, self.__land())
         return expr
 
-    def __land(self):
+    def __land(self) -> ExprNode:
         expr = self.__equal()
         while self.lookahead.tag == Tag.AND:
             op_tok = self.__move()
             expr = BinaryNode(op_tok, expr, self.__equal())
         return expr
 
-    def __equal(self):
+    def __equal(self) -> ExprNode:
         expr = self.__rel()
         while self.lookahead.tag in (Tag.EQ, Tag.NE):
             op_tok = self.__move()
             expr = BinaryNode(op_tok, expr, self.__rel())
         return expr
 
-    def __rel(self):
+    def __rel(self) -> ExprNode:
         expr = self.__arith()
         while self.lookahead.tag in (Tag.LT, Tag.LE, Tag.GT, Tag.GE):
             op_tok = self.__move()
             expr = BinaryNode(op_tok, expr, self.__arith())
         return expr
 
-    def __arith(self):
+    def __arith(self) -> ExprNode:
         expr = self.__term()
         while self.lookahead.tag in (Tag.SUM, Tag.SUB):
             op_tok = self.__move()
             expr = BinaryNode(op_tok, expr, self.__term())
         return expr
 
-    def __term(self):
+    def __term(self) -> ExprNode:
         expr = self.__unary()
         while self.lookahead.tag in (Tag.MUL, Tag.DIV, Tag.MOD):
             op_tok = self.__move()
             expr = BinaryNode(op_tok, expr, self.__unary())
         return expr
 
-    def __unary(self):
+    def __unary(self) -> ExprNode:
         if self.lookahead.tag in (Tag.SUM, Tag.SUB, Tag.NOT):
             op = self.__move()
             return UnaryNode(op, self.__unary())
         else:
             return self.__pow()
 
-    def __pow(self):
+    def __pow(self) -> ExprNode:
         expr = self.__factor()
         if self.lookahead.tag == Tag.POW:
             op = self.__move()
             return BinaryNode(op, expr, self.__unary())
         return expr
 
-    def __factor(self):
+    def __factor(self) -> ExprNode:
         match = self.__match
         expr = None
         match self.lookahead.tag:
@@ -286,5 +288,6 @@ class Parser:
                 var_tok = self.__move()
                 expr = VarNode(var_tok)
             case _:
-                self.__error(self.lookahead.line, f'"{self.lookahead.lexeme}" invalidou a expressão!')
+                self.__error(self.lookahead.line, 
+                        f'"{self.lookahead.lexeme}" invalidou a expressão!')
         return expr
