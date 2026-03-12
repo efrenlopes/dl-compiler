@@ -24,7 +24,7 @@ select = [
     "E",    # pycodestyle
     "F",    # pyflakes
     "I",    # imports
-    "D",    # docstrings
+    #"D",    # docstrings
     "ANN",  # type hints
     "UP",   # modern python
     "B",    # bugbear

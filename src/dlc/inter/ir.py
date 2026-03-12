@@ -1,3 +1,5 @@
+from ctypes import c_double, c_int32
+
 from dlc.inter.basic_block import BasicBlock
 from dlc.inter.instr import Instr
 from dlc.inter.operand import Const, Label, Operand, Temp
@@ -6,26 +8,25 @@ from dlc.lex.tag import Tag
 from dlc.semantic.type import Type
 from dlc.tree.ast import AST
 from dlc.tree.nodes import (
-    Visitor,
-    ProgramNode,
-    BlockNode,
-    DeclNode,
     AssignNode,
-    IfNode,
+    BinaryNode,
+    BlockNode,
+    ConvertNode,
+    DeclNode,
     ElseNode,
+    IfNode,
+    LiteralNode,
+    ProgramNode,
+    ReadNode,
+    UnaryNode,
+    VarNode,
     WhileNode,
     WriteNode,
-    ReadNode,
-    ConvertNode,
-    VarNode,
-    BinaryNode,
-    UnaryNode,
-    LiteralNode
 )
-from ctypes import c_int32, c_double
+from dlc.tree.visitor import Visitor
 
 
-class IR(Visitor):
+class IR(Visitor[Temp | None]):
     
     __OP_MAP = {
         Tag.SUM: Operator.SUM,
@@ -128,7 +129,7 @@ class IR(Visitor):
         return '\n'.join(tac)
 
 
-    def visit_program_node(self, node: ProgramNode):
+    def visit_program_node(self, node: ProgramNode) -> None:
         node.stmt.accept(self)
     
 
@@ -153,7 +154,7 @@ class IR(Visitor):
         self.add_instr(Instr(Operator.STORE, arg, Operand.EMPTY, temp))
 
 
-    def visit_var_node(self, node: VarNode):
+    def visit_var_node(self, node: VarNode) -> Temp:
         temp = Temp(node.type)
         key = (node.name, node.scope)
         var = self.__var_temp_map[key]

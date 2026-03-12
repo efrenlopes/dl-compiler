@@ -1,15 +1,16 @@
 from dlc.tree.nodes import Node
 
+
 class AST:
     
-    def __init__(self, root: Node):
+    def __init__(self, root: Node) -> None:
         self.root = root
         
-    def __str__(self):
+    def __str__(self) -> str:
         self.str_tree = ['.\n']
         return self.__str_ast(self.root)
 
-    def __str_ast(self, node, prefix:str='', is_last=True):
+    def __str_ast(self, node:Node, prefix:str='', is_last:bool=True) -> str:
         connector = '└───' if is_last else '├───'
         self.str_tree.append(f'{prefix}{connector}{str(node)}\n')
         new_prefix = f'{prefix}{"    " if is_last else "│   "}'

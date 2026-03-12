@@ -1,77 +1,79 @@
+import colorama
+
 from dlc.lex.tag import Tag
 from dlc.semantic.env import Env, SymbolInfo
 from dlc.semantic.type import Type
 from dlc.tree.ast import AST
 from dlc.tree.nodes import (
-    Visitor,
-    ProgramNode,
-    BlockNode,
-    DeclNode,
     AssignNode,
-    IfNode,
-    ElseNode,
-    WriteNode,
-    ReadNode,
-    VarNode,
-    LiteralNode,
     BinaryNode,
-    UnaryNode,
+    BlockNode,
     ConvertNode,
-    ExprNode
+    DeclNode,
+    ElseNode,
+    ExprNode,
+    IfNode,
+    LiteralNode,
+    ProgramNode,
+    ReadNode,
+    UnaryNode,
+    VarNode,
+    WhileNode,
+    WriteNode,
 )
-import colorama
+from dlc.tree.visitor import Visitor
 
-class Checker(Visitor):
+
+class Checker(Visitor[None]):
     
-    def __init__(self, ast: AST):
+    def __init__(self, ast: AST) -> None:
         self.__env_top = Env()
         self.had_errors = False
         ast.root.accept(self)
 
 
-    def __error(self, line: int, msg: str):
+    def __error(self, line: int, msg: str) -> None:
         self.had_errors = True
         colorama.init()
         print(colorama.Fore.RED, end='')
         print(f'Erro semântico na linha {line}: {msg}')
         print(colorama.Style.RESET_ALL, end='')
 
-    def __warning(self, line: int, msg: str):
+    def __warning(self, line: int, msg: str) -> None:
         colorama.init()
         print(colorama.Fore.YELLOW, end='')
         print(f'Aviso na linha {line}: {msg}') 
         print(colorama.Style.RESET_ALL, end='')
         
         
-    def visit_program_node(self, node: ProgramNode):
+    def visit_program_node(self, node: ProgramNode) -> None:
         node.stmt.accept(self)
         
 
-    def visit_block_node(self, node: BlockNode):
+    def visit_block_node(self, node: BlockNode) -> None:
         saved_env = self.__env_top
         self.__env_top = Env(self.__env_top)
         for stmt in node.stmts:
             stmt.accept(self)        
         for var in self.__env_top.var_list():
             info = self.__env_top.get_local(var)
-            if not info.used:
-                self.__warning(info.declaration_line, f'variável "{var}" declarada mas não usada.')
+            if info and not info.used:
+                self.__warning(info.declaration_line,
+                            f'variável "{var}" declarada mas não usada.')
         self.__env_top = saved_env
 
 
-    def visit_decl_node(self, node: DeclNode):
+    def visit_decl_node(self, node: DeclNode) -> None:
         for var in node.vars:
-            #var_name = var.name
             if self.__env_top.get_local(var.name) is None:
                 var.type = Type.tag_to_type(node.token.tag)
                 var.scope = self.__env_top.number
                 self.__env_top.put(var.name, SymbolInfo(var.type, var.scope, node.line))
             else:
-                var.type = Type.UNDEF
                 self.__error(node.line, f'"{var.name}" já declarada!')
 
 
-    def visit_assign_node(self, node: AssignNode):
+    def visit_assign_node(self, node: AssignNode) -> None:
         node.expr.accept(self)
         info = self.__env_top.get(node.var.name)
         if info:
@@ -84,11 +86,10 @@ class Checker(Visitor):
                 #widen
                 node.expr = Checker.widening(node.expr, node.var.type)
         else:
-            node.var.type = Type.UNDEF
             self.__error(node.var.line, f'"{node.var.name}" não declarada!')
 
     @staticmethod
-    def widening(expr: ExprNode, type: Type):
+    def widening(expr: ExprNode, type: Type) -> ExprNode:
         if expr.type == type:
             return expr
         w = ConvertNode(expr)
@@ -96,14 +97,14 @@ class Checker(Visitor):
         return w
 
 
-    def visit_if_node(self, node: IfNode):
+    def visit_if_node(self, node: IfNode) -> None:
         node.expr.accept(self)
         if not node.expr.type.is_boolean:
             self.__error(node.line, 'Esperada uma expressão lógica')
         node.stmt.accept(self)
 
 
-    def visit_else_node(self, node: ElseNode):
+    def visit_else_node(self, node: ElseNode) -> None:
         node.expr.accept(self)
         if not node.expr.type.is_boolean:
             self.__error(node.line, 'Esperada uma expressão lógica')
@@ -111,28 +112,27 @@ class Checker(Visitor):
         node.stmt2.accept(self)
 
 
-    def visit_while_node(self, node: IfNode):
+    def visit_while_node(self, node: WhileNode) -> None:
         node.expr.accept(self)
         if not node.expr.type.is_boolean:
             self.__error(node.line, 'Esperada uma expressão lógica')
         node.stmt.accept(self)
 
 
-    def visit_write_node(self, node: WriteNode):
+    def visit_write_node(self, node: WriteNode) -> None:
         node.expr.accept(self)
 
-    def visit_read_node(self, node: ReadNode):
+    def visit_read_node(self, node: ReadNode) -> None:
         info = self.__env_top.get(node.var.name)
         if info:
             node.var.type = info.type
             node.var.scope = info.scope
             info.initialized = True
         else:
-            node.var.type = Type.UNDEF
             self.__error(node.var.line, f'"{node.var.name}" não declarada!')
 
 
-    def visit_var_node(self, node: VarNode):
+    def visit_var_node(self, node: VarNode) -> None:
         info = self.__env_top.get(node.name)
         if info:
             node.type = info.type
@@ -141,11 +141,10 @@ class Checker(Visitor):
             if not info.initialized:
                 self.__error(node.line, f'"{node.name}" não inicializada!')
         else:
-            node.type = Type.UNDEF
             self.__error(node.line, f'"{node.name}" não declarada!')
 
 
-    def visit_literal_node(self, node: LiteralNode):
+    def visit_literal_node(self, node: LiteralNode) -> None:
         node.type = Type.tag_to_type(node.token.tag)
         match node.type:
             case Type.BOOL:
@@ -155,17 +154,21 @@ class Checker(Visitor):
                 if Type.MIN_INT <= value <= Type.MAX_INT:
                     node.value = value
                 else:
-                    self.__error(node.line, f'O valor {value} está fora da faixa de valores dos inteiros.')
+                    self.__error(node.line, 
+                                 f'Valor {value} fora da faixa dos inteiros.')
             case Type.REAL:
                 value = float(node.raw_value)
                 if Type.MIN_REAL <= value <= Type.MAX_REAL:
                     node.value = value
                 else:
-                    self.__error(node.line, f'O valor {value} está fora da faixa de valores dos reais.')
+                    self.__error(node.line,
+                                 f'Valor {value} fora da faixa dos reais.')
+            case _:
+                pass
 
 
 
-    def visit_binary_node(self, node: BinaryNode):
+    def visit_binary_node(self, node: BinaryNode) -> None:
         node.expr1.accept(self)
         node.expr2.accept(self)
         
@@ -173,22 +176,22 @@ class Checker(Visitor):
         t2 = node.expr2.type
         common_type = Type.common_type(t1, t2)
 
-        node_type = Type.UNDEF
         match node.operator:
             case Tag.OR | Tag.AND:
                 if t1.is_boolean and t2.is_boolean:
-                    node_type = Type.BOOL
+                    node.type = Type.BOOL
             case Tag.EQ | Tag.NE:
                 if common_type:
-                    node_type = Type.BOOL
+                    node.type = Type.BOOL
             case Tag.SUM | Tag.SUB | Tag.MUL | Tag.DIV | Tag.MOD | Tag.POW:
                 if t1.is_numeric and t2.is_numeric:
-                    node_type = common_type
+                    node.type = common_type
             case Tag.LT | Tag.LE | Tag.GT | Tag.GE:
                 if t1.is_numeric and t2.is_numeric:
-                    node_type = Type.BOOL
+                    node.type = Type.BOOL
+            case _:
+                pass
         
-        node.type = node_type
         if node.type.is_undef:
             self.__error(node.line, f'Operação "{node.operator}" com operandos inválidos.')
         else:
@@ -197,11 +200,11 @@ class Checker(Visitor):
     
 
 
-    def visit_unary_node(self, node: UnaryNode):
+    def visit_unary_node(self, node: UnaryNode) -> None:
         node.expr.accept(self)
         type = node.expr.type
 
-        node.type = Type.UNDEF
+        #node.type = Type.UNDEF
         match node.operator:
             case Tag.SUM | Tag.SUB:
                 if type.is_numeric:
@@ -209,10 +212,12 @@ class Checker(Visitor):
             case Tag.NOT:
                 if type.is_boolean:
                     node.type = node.expr.type
+            case _:
+                pass
         
         if node.type.is_undef:
             self.__error(node.line, f'Operação unária "{node.operator}" com operando inválido.')
 
 
-    def visit_convert_node(self, node: ConvertNode):
+    def visit_convert_node(self, node: ConvertNode) -> None:
         pass
