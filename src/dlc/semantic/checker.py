@@ -81,7 +81,8 @@ class Checker(Visitor[None]):
             node.var.scope = info.scope
             info.initialized = True
             if node.var.type != Type.common_type(node.var.type, node.expr.type):
-                self.__error(node.line, 'Tipo da variável incompatível com o tipo da expressão')
+                self.__error(node.line, 
+                             'Tipo da variável incompatível com o tipo da expressão')
             else:            
                 #widen
                 node.expr = Checker.widening(node.expr, node.var.type)
@@ -193,7 +194,8 @@ class Checker(Visitor[None]):
                 pass
         
         if node.type.is_undef:
-            self.__error(node.line, f'Operação "{node.operator}" com operandos inválidos.')
+            self.__error(node.line, 
+                         f'Operação "{node.operator}" com operandos inválidos.')
         else:
             node.expr1 = Checker.widening(node.expr1, common_type)
             node.expr2 = Checker.widening(node.expr2, common_type)
@@ -216,7 +218,8 @@ class Checker(Visitor[None]):
                 pass
         
         if node.type.is_undef:
-            self.__error(node.line, f'Operação unária "{node.operator}" com operando inválido.')
+            self.__error(node.line, 
+                         f'Operação unária "{node.operator}" com operando inválido.')
 
 
     def visit_convert_node(self, node: ConvertNode) -> None:
