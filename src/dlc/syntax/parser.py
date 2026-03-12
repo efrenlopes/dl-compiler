@@ -1,28 +1,45 @@
+"""Parser module for the DL compiler.
+
+This module contains the Parser class which performs syntax analysis
+on tokens produced by the lexer and builds an abstract syntax tree.
+"""
+import colorama
+
 from dlc.lex.lexemes import FIXED_LEXEMES
+from dlc.lex.lexer import Lexer
 from dlc.lex.tag import Tag
-from dlc.lex.token import Token
 from dlc.tree.ast import AST
 from dlc.tree.nodes import (
-    ProgramNode,
-    BlockNode,
-    VarNode,
-    DeclNode,
     AssignNode,
-    IfNode,
+    BinaryNode,
+    BlockNode,
+    DeclNode,
     ElseNode,
+    IfNode,
+    LiteralNode,
+    ProgramNode,
+    ReadNode,
+    UnaryNode,
+    VarNode,
     WhileNode,
     WriteNode,
-    ReadNode,
-    BinaryNode,
-    UnaryNode,
-    LiteralNode,
 )
-import colorama
 
 
 class Parser:
+    """Parser for the DL compiler.
     
-    def __init__(self, lex):
+    Performs syntax analysis on tokens produced by the lexer and builds
+    an abstract syntax tree (AST) for the DL programming language.
+    """
+    
+    def __init__(self, lex: Lexer) -> None:
+        """Initialize the parser with a lexer and perform parsing.
+        
+        Args:
+            lex: The Lexer instance to tokenize the input.
+        
+        """
         self.lexer = lex
         self.lookahead = None
         self.ast = None

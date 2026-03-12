@@ -11,17 +11,20 @@ class TrieNode:
     
     Attributes
     ----------
-    children : dict
-        Dictionary mapping characters to child TrieNode instances.
     tag : Tag or None
         The tag associated with this node if it represents the end of a lexeme.
+    children : dict
+        Dictionary mapping characters to child TrieNode instances.
 
     """
     
+    tag: Tag
+    children: dict[str, 'TrieNode']
+
     def __init__(self, tag: Tag) -> None:
         """Initialize an empty TrieNode."""
-        self.children: dict[str, TrieNode] = {}
         self.tag = tag
+        self.children = {}
     
 
 
@@ -33,12 +36,9 @@ class Trie:
     root : TrieNode
         The root node of the Trie.
     
-    Methods
-    -------
-    insert(tag: Tag, lexeme: str) -> None
-        Insert a lexeme with its associated tag into the Trie.
-    
     """
+
+    root: TrieNode
 
     def __init__(self) -> None:
         """Initialize a Trie with an empty root node."""

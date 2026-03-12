@@ -22,6 +22,10 @@ class Token:
     
     """
     
+    line: int
+    tag: Tag
+    inter_lexeme: str | None
+
     def __init__(self, line: int, tag: Tag, lexeme: str|None=None) -> None:
         """Initialize a Token instance.
         
