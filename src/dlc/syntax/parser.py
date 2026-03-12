@@ -102,8 +102,14 @@ class Parser:
         self.__error(self.lookahead.line, f'Esperado "{expected}", mas achou "{found}"')
     
     def __synchronize(self) -> None:
-        while self.lookahead.tag not in (Tag.EOF, Tag.BEGIN, Tag.IF, Tag.WRITE, 
-                                            Tag.INT, Tag.REAL, Tag.BOOL, Tag.END):
+        restart_tokens = {
+                Tag.INT, Tag.REAL, Tag.BOOL,  # Declarações
+                Tag.IF, Tag.WHILE,           # Controle
+                Tag.READ, Tag.WRITE,         # I/O
+                Tag.BEGIN,                   # Novos blocos
+                Tag.ID,                     # Atribuições
+        }
+        while self.lookahead.tag not in restart_tokens:
             self.__move()
 
     def __parse(self) -> None:
