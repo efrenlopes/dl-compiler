@@ -1,4 +1,5 @@
 from ctypes import c_double, c_int32
+from typing import cast
 
 from dlc.inter.basic_block import BasicBlock
 from dlc.inter.instr import Instr
@@ -45,14 +46,14 @@ class IR(Visitor[Temp | None]):
 
     def __init__(self, ast: AST):
         self.__var_temp_map = {}
-        self.label_bb_map = {}
-        self.__comments = {}
+        self.label_bb_map: dict[Label, BasicBlock] = {}
+        self.__comments: dict[Instr, str] = {}
 
         L0 = Label()
         bb_entry = BasicBlock()
         self.label_bb_map[L0] = bb_entry
         self.__bb_current = bb_entry
-        self.bb_sequence = []
+        self.bb_sequence: list[BasicBlock] = []
         self.add_instr( Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, L0 ))
         
         ast.root.accept(self)
@@ -64,26 +65,28 @@ class IR(Visitor[Temp | None]):
                 yield instr
     
 
-    def bb_from_label(self, label):
+    def bb_from_label(self, label: Label) -> BasicBlock:
         return self.label_bb_map[label]
 
-    def __bb_from_label(self, label):
+    def __bb_from_label(self, label: Label) -> BasicBlock:
         if label not in self.label_bb_map:
             self.label_bb_map[label] = BasicBlock()
         return self.label_bb_map[label]
 
 
-    def add_instr(self, instr: Instr, comment: str=None):
+    def add_instr(self, instr: Instr, comment: str|None=None) -> None:
         match instr.op:
             case Operator.LABEL:
-                new_bb: BasicBlock = self.__bb_from_label(instr.result)
+                label = cast(Label, instr.result)
+                new_bb: BasicBlock = self.__bb_from_label(label)
                 new_bb.label_instr = instr
                 self.bb_sequence.append(new_bb)
                 self.__bb_current = new_bb
             case Operator.GOTO | Operator.IF:
                 for arg in (instr.arg2, instr.result):
                     if arg.is_label:
-                        bb_target = self.__bb_from_label(arg)
+                        label = cast(Label, arg)
+                        bb_target = self.__bb_from_label(label)
                         self.__bb_current.add_successor(bb_target)
                 self.__bb_current.goto_instr = instr
             case Operator.PHI:
