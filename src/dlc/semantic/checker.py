@@ -166,7 +166,7 @@ class Checker(Visitor[None]):
                     self.__error(node.line,
                                  f'Valor {value} fora da faixa dos reais.')
             case _:
-                pass
+                raise RuntimeError('Não é um tipo válido!')
 
 
 
@@ -192,7 +192,7 @@ class Checker(Visitor[None]):
                 if t1.is_numeric and t2.is_numeric:
                     node.type = Type.BOOL
             case _:
-                pass
+                raise RuntimeError('Não é um operador binário válido!')
         
         if node.type.is_undef:
             self.__error(node.line, 
@@ -215,7 +215,7 @@ class Checker(Visitor[None]):
                 if type.is_boolean:
                     node.type = node.expr.type
             case _:
-                pass
+                raise RuntimeError('Não é um operador unário válido!')
         
         if node.type.is_undef:
             self.__error(node.line, 

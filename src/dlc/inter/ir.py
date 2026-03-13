@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from ctypes import c_double, c_int32
 from typing import cast
 
@@ -9,6 +9,8 @@ from dlc.inter.basic_block import BasicBlock
 from dlc.inter.instr import Instr
 from dlc.inter.operand import Const, Label, Operand, Temp
 from dlc.inter.operator import Operator
+from dlc.inter.phi_instr import PhiInstr
+from dlc.inter.ssa_operand import TempVersion
 from dlc.lex.tag import Tag
 from dlc.semantic.type import Type
 from dlc.tree.ast import AST
@@ -31,7 +33,7 @@ from dlc.tree.nodes import (
 from dlc.tree.visitor import Visitor
 
 
-class IR(Visitor[Temp | None]):
+class IR(Visitor[Operand]):
     
     __OP_MAP = {
         Tag.SUM: Operator.SUM,
@@ -49,7 +51,7 @@ class IR(Visitor[Temp | None]):
     }
 
     def __init__(self, ast: AST) -> None:
-        self.__var_temp_map = {}
+        self.__var_temp_map: dict[tuple[str, int], Temp] = {}
         self.label_bb_map: defaultdict[Label, BasicBlock] = defaultdict(BasicBlock)
         self.bb_sequence: list[BasicBlock] = []
         self.__comments: dict[Instr, str] = {}
@@ -125,32 +127,39 @@ class IR(Visitor[Temp | None]):
         return '\n'.join(tac)
 
 
-    def visit_program_node(self, node: ProgramNode) -> None:
+    def visit_program_node(self, node: ProgramNode) -> Operand:
         node.stmt.accept(self)
+        return Operand.EMPTY
     
 
-    def visit_block_node(self, node: BlockNode) -> None:
+    def visit_block_node(self, node: BlockNode) -> Operand:
         for stmt in node.stmts:
             stmt.accept(self)
+        return Operand.EMPTY
         
     
-    def visit_decl_node(self, node: DeclNode) -> None:
+    def visit_decl_node(self, node: DeclNode) -> Operand:
         for var in node.vars:
             temp = Temp(var.type, True)
             key = (var.name, var.scope)
             self.__var_temp_map[key] = temp
             comment = f'var {var.name} [type={var.type}, scope={var.scope}]'
-            self.add_instr( Instr(Operator.ALLOCA, Operand.EMPTY, Operand.EMPTY, temp), comment)
+            self.add_instr(
+                Instr(Operator.ALLOCA, Operand.EMPTY, Operand.EMPTY, temp),
+                comment
+            )
+        return Operand.EMPTY
         
 
-    def visit_assign_node(self, node: AssignNode):
+    def visit_assign_node(self, node: AssignNode) -> Operand:
         arg = node.expr.accept(self)
         key = (node.var.name, node.var.scope)
         temp = self.__var_temp_map[key]
         self.add_instr(Instr(Operator.STORE, arg, Operand.EMPTY, temp))
+        return Operand.EMPTY
 
 
-    def visit_var_node(self, node: VarNode) -> Temp:
+    def visit_var_node(self, node: VarNode) -> Operand:
         temp = Temp(node.type)
         key = (node.name, node.scope)
         var = self.__var_temp_map[key]
@@ -160,18 +169,18 @@ class IR(Visitor[Temp | None]):
 
 
 
-    def visit_literal_node(self, node: LiteralNode):
+    def visit_literal_node(self, node: LiteralNode) -> Operand:
         return Const(node.type, node.value)
 
 
-    def visit_convert_node(self, node: ConvertNode):
+    def visit_convert_node(self, node: ConvertNode) -> Operand:
         arg = node.expr.accept(self)
         temp = Temp(node.type)
         self.add_instr(Instr(Operator.CONVERT, arg, Operand.EMPTY, temp))        
         return temp
 
 
-    def visit_binary_node(self, node: BinaryNode):
+    def visit_binary_node(self, node: BinaryNode) -> Operand:
         EMPTY = Operand.EMPTY
         
         if node.token.tag == Tag.OR:
@@ -236,7 +245,7 @@ class IR(Visitor[Temp | None]):
 
 
 
-    def visit_unary_node(self, node: UnaryNode):
+    def visit_unary_node(self, node: UnaryNode) -> Operand:
         arg = node.expr.accept(self)
         temp = Temp(node.type)
         
@@ -247,13 +256,15 @@ class IR(Visitor[Temp | None]):
                 op = Operator.MINUS
             case Tag.NOT:
                 op = Operator.NOT
+            case _:
+                raise RuntimeError('Não é um operador unário')
         
         self.add_instr(Instr(op, arg, Operand.EMPTY, temp))
         return temp
 
 
 
-    def visit_if_node(self, node: IfNode):
+    def visit_if_node(self, node: IfNode) -> Operand:
         arg = node.expr.accept(self)
         lbl_true = Label()
         lbl_out = Label()
@@ -268,8 +279,10 @@ class IR(Visitor[Temp | None]):
         #out
         self.add_instr(Instr(Operator.LABEL, EMPTY, EMPTY, lbl_out))
 
+        return Operand.EMPTY
 
-    def visit_else_node(self, node: ElseNode):
+
+    def visit_else_node(self, node: ElseNode) -> Operand:
         arg = node.expr.accept(self)
         lbl_true = Label()
         lbl_false = Label()
@@ -289,9 +302,11 @@ class IR(Visitor[Temp | None]):
         #out
         self.add_instr(Instr(Operator.LABEL, EMPTY, EMPTY, lbl_out))
 
+        return Operand.EMPTY
 
 
-    def visit_while_node(self, node: WhileNode):
+
+    def visit_while_node(self, node: WhileNode) -> Operand:
         lbl_entry = Label()
         lbl_body = Label()
         lbl_exit = Label()
@@ -308,24 +323,26 @@ class IR(Visitor[Temp | None]):
         #end
         self.add_instr(Instr(Operator.LABEL, EMPTY, EMPTY, lbl_exit))
 
+        return Operand.EMPTY
+
     
-    def visit_write_node(self, node: WriteNode):
+    def visit_write_node(self, node: WriteNode) -> Operand:
         arg = node.expr.accept(self)
         self.add_instr(Instr(Operator.PRINT, arg, Operand.EMPTY, Operand.EMPTY))
+        return Operand.EMPTY
 
 
-    def visit_read_node(self, node: ReadNode):
-        #if (node.var.name, node.var.scope) not in self.__var_temp_map:
-        #    temp = SSATemp(node.var.type)
-        #    self.__var_temp_map[(node.var.name, node.var.scope)] = temp
+    def visit_read_node(self, node: ReadNode) -> Operand:
         temp = self.__var_temp_map[(node.var.name, node.var.scope)]
         self.add_instr(Instr(Operator.READ, Operand.EMPTY, Operand.EMPTY, temp))
+        return Operand.EMPTY
 
 
 
 
-
-    OPS = {
+    OP_BINARY: dict[Operator, 
+             Callable[[Operand.RUNTIME_TYPES, Operand.RUNTIME_TYPES], 
+                      Operand.RUNTIME_TYPES]] = {
         Operator.SUM: lambda a, b: a + b,
         Operator.SUB: lambda a, b: a - b,
         Operator.MUL: lambda a, b: a * b,
@@ -338,34 +355,49 @@ class IR(Visitor[Temp | None]):
         Operator.LE: lambda a, b: a <= b,
         Operator.GT: lambda a, b: a > b,
         Operator.GE: lambda a, b: a >= b,
-        Operator.PLUS: lambda a, _: + a,
-        Operator.MINUS: lambda a, _: - a,
-        Operator.NOT: lambda a, _: not a,
-        Operator.CONVERT: lambda a, _: float(a)
+    }
+
+    OP_UNARY: dict[Operator, 
+             Callable[[Operand.RUNTIME_TYPES], Operand.RUNTIME_TYPES]] = {
+        Operator.PLUS: lambda a: + a,
+        Operator.MINUS: lambda a: - a,
+        Operator.NOT: lambda a: not a,
+        Operator.CONVERT: lambda a: float(a)
     }
 
 
 
+    # @staticmethod
+    # def operate(op: Operator, value1: Operand.RUNTIME_TYPES, 
+    #             value2: Operand.RUNTIME_TYPES) -> Operand.RUNTIME_TYPES:
+    #     value = IR.OP_BINARY[op](value1, value2)
+    #     if isinstance(value, bool):
+    #         return value
+    #     elif isinstance(value, int):
+    #         return c_int32(value).value
+    #     else:
+    #         return c_double(value).value
+
     @staticmethod
-    def operate(op: Operator, value1, value2):
-        value = IR.OPS[op](value1, value2)
+    def __normalize(value: Operand.RUNTIME_TYPES) -> Operand.RUNTIME_TYPES:
         if isinstance(value, bool):
             return value
         elif isinstance(value, int):
             return c_int32(value).value
-        elif isinstance(value, float):
+        else:
             return c_double(value).value
 
 
+    def interpret(self) -> None:
+        mem: dict[Operand, Operand.RUNTIME_TYPES|None] = {}
 
-    def interpret(self):
-        mem = {}
-
-        def get_value(arg):
+        def get_value(arg: Operand) -> Operand.RUNTIME_TYPES | None:
             if arg.is_temp or arg.is_temp_version:
                 return mem.get(arg)
             elif arg.is_const:
+                arg = cast(Const, arg)
                 return arg.value
+            return None
 
         bb_prev = None
         bb = self.bb_sequence[0]
@@ -379,8 +411,10 @@ class IR(Visitor[Temp | None]):
                 
                 match op:
                     case Operator.PHI:
-                        value = get_value( instr.paths.get(bb_prev) ) #value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna Operand.EMPTY como valor padrão para o caso de PHIs inúteis
-                        mem[result] = value
+                        if bb_prev:
+                            instr = cast(PhiInstr, instr)
+                            value = get_value( instr.paths[bb_prev] )
+                            mem[result] = value
                     case Operator.ALLOCA:
                         mem[result] = None
                     case Operator.STORE:
@@ -390,37 +424,118 @@ class IR(Visitor[Temp | None]):
                     case Operator.LABEL:
                         continue
                     case Operator.IF:
-                        if value1:                    
-                            bb_next = self.bb_from_label(instr.arg2)
+                        if value1:
+                            label = cast(Label, instr.arg2)
+                            bb_next = self.bb_from_label(label)
                         else:
-                            bb_next = self.bb_from_label(instr.result)
+                            label = cast(Label, instr.result)
+                            bb_next = self.bb_from_label(label)
                     case Operator.GOTO:
-                        bb_next = self.bb_from_label(result)
+                        label = cast(Label, instr.result)
+                        bb_next = self.bb_from_label(label)
                     case Operator.PRINT:
-                        if isinstance(value1, float):
-                            print(f'output: {value1:.4f}')
-                        else:
-                            print(f'output: {int(value1)}')
+                        if value1:
+                            if isinstance(value1, float):
+                                print(f'output: {value1:.4f}')
+                            else:
+                                print(f'output: {int(value1)}')
                     case Operator.READ:
                         try:
-                            i = input('input: ')
-                            match result.type:
-                                case Type.BOOL:
-                                    i = bool(int(i))
-                                case Type.INT:
-                                    i = int(i)
-                                case Type.REAL:
-                                    i = float(i)
-                            mem[result] = i
+                            if isinstance(result, (Temp, TempVersion)):
+                                i = input('input: ')
+                                match result.type:
+                                    case Type.BOOL:
+                                        i = bool(int(i))
+                                    case Type.INT:
+                                        i = int(i)
+                                    case Type.REAL:
+                                        i = float(i)
+                                    case _:
+                                        raise RuntimeError('Não é um tipo válido!')
+                                mem[result] = i
                         except ValueError:
                             print('Entrada de dados inválida! Interpretação encerrada.')
                             return
                     case Operator.MOVE:
                         mem[result] = value1
                     case _:
-                        mem[result] = IR.operate(op, value1, value2)
+                        if op in IR.OP_BINARY \
+                                and value1 is not None and value2 is not None:
+                            value = IR.OP_BINARY[op](value1, value2)
+                        elif op in IR.OP_UNARY and value1 is not None:
+                            value = IR.OP_UNARY[op](value1)
+                        else:
+                            raise RuntimeError('Operador não existe!')
+                        mem[result] = IR.__normalize(value)
 
-
-            #TRANSIÇÃO DE BLOCOS
+            # BB transition
             bb_prev = bb
             bb = bb_next
+
+
+    # def interpret(self) -> None:
+    #     mem = {}
+
+    #     def get_value(arg):
+    #         if arg.is_temp or arg.is_temp_version:
+    #             return mem.get(arg)
+    #         elif arg.is_const:
+    #             return arg.value
+
+    #     bb_prev = None
+    #     bb = self.bb_sequence[0]
+    #     while bb:
+    #         bb_next = None
+    #         for instr in bb:
+    #             op = instr.op
+    #             result = instr.result
+    #             value1 = get_value(instr.arg1)
+    #             value2 = get_value(instr.arg2)
+                
+    #             match op:
+    #                 case Operator.PHI:
+    #                     value = get_value( instr.paths.get(bb_prev) ) #value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna Operand.EMPTY como valor padrão para o caso de PHIs inúteis
+    #                     mem[result] = value
+    #                 case Operator.ALLOCA:
+    #                     mem[result] = None
+    #                 case Operator.STORE:
+    #                     mem[result] = value1
+    #                 case Operator.LOAD:
+    #                     mem[result] = mem[instr.arg1]
+    #                 case Operator.LABEL:
+    #                     continue
+    #                 case Operator.IF:
+    #                     if value1:                    
+    #                         bb_next = self.bb_from_label(instr.arg2)
+    #                     else:
+    #                         bb_next = self.bb_from_label(instr.result)
+    #                 case Operator.GOTO:
+    #                     bb_next = self.bb_from_label(result)
+    #                 case Operator.PRINT:
+    #                     if isinstance(value1, float):
+    #                         print(f'output: {value1:.4f}')
+    #                     else:
+    #                         print(f'output: {int(value1)}')
+    #                 case Operator.READ:
+    #                     try:
+    #                         i = input('input: ')
+    #                         match result.type:
+    #                             case Type.BOOL:
+    #                                 i = bool(int(i))
+    #                             case Type.INT:
+    #                                 i = int(i)
+    #                             case Type.REAL:
+    #                                 i = float(i)
+    #                         mem[result] = i
+    #                     except ValueError:
+    #                         print('Entrada de dados inválida! Interpretação encerrada.')
+    #                         return
+    #                 case Operator.MOVE:
+    #                     mem[result] = value1
+    #                 case _:
+    #                     mem[result] = IR.operate(op, value1, value2)
+
+
+    #         #TRANSIÇÃO DE BLOCOS
+    #         bb_prev = bb
+    #         bb = bb_next

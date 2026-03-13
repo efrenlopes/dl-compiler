@@ -8,15 +8,13 @@ from dlc.semantic.type import Type
 
 class Operand(ABC):
     EMPTY: Operand
+    RUNTIME_TYPES = bool | int | float
     
     @property
     def is_temp(self) -> bool: return False
 
     @property
     def is_temp_version(self) -> bool: return False
-
-    @property
-    def is_phi(self) -> bool: return False
 
     @property
     def is_const(self) -> bool: return False
@@ -58,7 +56,7 @@ class Temp(Operand):
 
 
 class Const(Operand):
-    def __init__(self, type: Type, value: object) -> None:
+    def __init__(self, type: Type, value: Operand.RUNTIME_TYPES) -> None:
         self.type = type
         self.value = value
 

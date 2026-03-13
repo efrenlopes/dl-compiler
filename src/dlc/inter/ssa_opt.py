@@ -60,12 +60,12 @@ def constant_folding(ssa: SSA) -> bool:
     for bb in ssa.ir.bb_sequence:
         for instr in bb:
             # 1. Verificar se é uma operação com argumento(s) constante(s)
-            if instr.op in IR.OPS and instr.arg1.is_const and (instr.arg2.is_const or instr.arg2 == Operand.EMPTY):
+            if instr.op in IR.OP_BINARY and instr.arg1.is_const and (instr.arg2.is_const or instr.arg2 == Operand.EMPTY):
                 try:
                     # 2. Calcular o resultado em tempo de compilação
                     val1 = instr.arg1.value
                     val2 = instr.arg2.value if instr.arg2.is_const else None
-                    result_value = IR.OPS[instr.op](val1, val2)
+                    result_value = IR.OP_BINARY[instr.op](val1, val2)
                     # 3. Transformar a instrução em um MOVE de constante
                     instr.op = Operator.MOVE
                     instr.arg1 = Const(instr.result.type, result_value)
