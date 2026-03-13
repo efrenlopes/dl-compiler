@@ -42,7 +42,6 @@ class Node(ABC):
 
 
 class ExprNode(Node):
-    type: Type
     
     def __init__(self, token: Token) -> None:
         super().__init__(token)
@@ -53,7 +52,6 @@ class ExprNode(Node):
 
 
 class VarNode(ExprNode):
-    scope: int
     
     def __init__(self, token: Token) -> None:
         super().__init__(token)
@@ -70,11 +68,9 @@ class VarNode(ExprNode):
 
 class LiteralNode(ExprNode):
     
-    value: Any
-    
     def __init__(self, token: Token) -> None:
         super().__init__(token)
-        self.value = None
+        self.value: Any = None
 
     @property
     def raw_value(self) -> str:
