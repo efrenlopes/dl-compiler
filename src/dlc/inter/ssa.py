@@ -2,7 +2,8 @@ from dlc.inter.basic_block import BasicBlock
 from dlc.inter.ir import IR
 from dlc.inter.instr import Instr
 from dlc.inter.operator import Operator
-from dlc.inter.operand import Operand, Phi, TempVersion
+from dlc.inter.operand import Operand
+from dlc.inter.ssa_operand import Phi, TempVersion
 
 
 class SSA:

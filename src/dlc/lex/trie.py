@@ -20,13 +20,10 @@ class TrieNode:
 
     """
     
-    tag: Tag
-    children: dict[str, TrieNode]
-
     def __init__(self, tag: Tag) -> None:
         """Initialize an empty TrieNode."""
         self.tag = tag
-        self.children = {}
+        self.children: dict[str, TrieNode] = {}
     
 
 

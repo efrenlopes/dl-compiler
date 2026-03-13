@@ -1,12 +1,15 @@
+from dlc.inter.instr import Instr
+
+
 class BasicBlock:
     
     __count = -1
+    label_instr: Instr
 
     def __init__(self) -> None:
         BasicBlock.__count += 1
         self.number = BasicBlock.__count
         #bb sections
-        self.label_instr = None
         self.phi_instrs = []
         self.body_instrs = []
         self.goto_instr = None
@@ -32,9 +35,9 @@ class BasicBlock:
     # def __getitem__(self, index):
     #     return self.instructions[index]
     
-    def __str__(self):
+    def __str__(self) -> str:
         return f'bb{self.number}'
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<{str(self)}>'
         #return f'<bb{self.number}: [{self.instructions[0]}]->[{self.instructions[-1]}]>'

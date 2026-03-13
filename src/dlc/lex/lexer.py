@@ -35,10 +35,6 @@ class Lexer:
     """
 
     EOF_CHAR = ''
-    input: TextIO
-    line: int
-    peek: str
-    trie: Trie
 
     def __init__(self, input_stream: TextIO) -> None:
         self.__input = input_stream
