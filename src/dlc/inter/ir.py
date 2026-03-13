@@ -1,5 +1,9 @@
+from collections import defaultdict
+from collections.abc import Generator
 from ctypes import c_double, c_int32
 from typing import cast
+
+from graphviz import Digraph  # type: ignore
 
 from dlc.inter.basic_block import BasicBlock
 from dlc.inter.instr import Instr
@@ -44,33 +48,27 @@ class IR(Visitor[Temp | None]):
         Tag.GE: Operator.GE
     }
 
-    def __init__(self, ast: AST):
+    def __init__(self, ast: AST) -> None:
         self.__var_temp_map = {}
-        self.label_bb_map: dict[Label, BasicBlock] = {}
+        self.label_bb_map: defaultdict[Label, BasicBlock] = defaultdict(BasicBlock)
+        self.bb_sequence: list[BasicBlock] = []
         self.__comments: dict[Instr, str] = {}
-
+        # Entry Basic Block
         L0 = Label()
         bb_entry = BasicBlock()
         self.label_bb_map[L0] = bb_entry
         self.__bb_current = bb_entry
-        self.bb_sequence: list[BasicBlock] = []
         self.add_instr( Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, L0 ))
-        
+        # Starting IR generation
         ast.root.accept(self)
 
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Instr, None, None]:
         for bb in self.bb_sequence:
-            for instr in bb:
-                yield instr
+            yield from bb
     
 
     def bb_from_label(self, label: Label) -> BasicBlock:
-        return self.label_bb_map[label]
-
-    def __bb_from_label(self, label: Label) -> BasicBlock:
-        if label not in self.label_bb_map:
-            self.label_bb_map[label] = BasicBlock()
         return self.label_bb_map[label]
 
 
@@ -78,7 +76,7 @@ class IR(Visitor[Temp | None]):
         match instr.op:
             case Operator.LABEL:
                 label = cast(Label, instr.result)
-                new_bb: BasicBlock = self.__bb_from_label(label)
+                new_bb = self.label_bb_map[label]
                 new_bb.label_instr = instr
                 self.bb_sequence.append(new_bb)
                 self.__bb_current = new_bb
@@ -86,7 +84,7 @@ class IR(Visitor[Temp | None]):
                 for arg in (instr.arg2, instr.result):
                     if arg.is_label:
                         label = cast(Label, arg)
-                        bb_target = self.__bb_from_label(label)
+                        bb_target = self.label_bb_map[label]
                         self.__bb_current.add_successor(bb_target)
                 self.__bb_current.goto_instr = instr
             case Operator.PHI:
@@ -100,25 +98,20 @@ class IR(Visitor[Temp | None]):
 
 
 
-    def plot(self):
-        from graphviz import Digraph
+    def plot(self) -> None:
         dot = Digraph()
-        dot.attr(fontname="consolas")
+        dot.attr(fontname="consolas") # type: ignore
         for bb in self.bb_sequence:
             code = [str(i) for i in bb]
-            dot.node(name=str(bb), label='\n'.join(code), shape="box", xlabel=str(bb))
+            dot.node(name=str(bb), label='\n'.join(code), shape="box", xlabel=str(bb)) # type: ignore
             for s in bb.successors:
-                dot.edge(str(bb), str(s))
-            #for s in bb.predecessors:
-            #    dot.edge(str(bb), str(s), color="red")
-        dot.render('out/teste_fluxo', view=False) 
+                dot.edge(str(bb), str(s)) # type: ignore
+        dot.render('out/teste_fluxo', view=False)  # type: ignore
 
 
 
-
-
-    def __str__(self):
-        tac = []
+    def __str__(self) -> str:
+        tac: list[str] = []
         count = 0
         for bb in self.bb_sequence:
             tac.append(f'----{bb}----')
@@ -136,12 +129,12 @@ class IR(Visitor[Temp | None]):
         node.stmt.accept(self)
     
 
-    def visit_block_node(self, node: BlockNode):
+    def visit_block_node(self, node: BlockNode) -> None:
         for stmt in node.stmts:
             stmt.accept(self)
         
     
-    def visit_decl_node(self, node: DeclNode):
+    def visit_decl_node(self, node: DeclNode) -> None:
         for var in node.vars:
             temp = Temp(var.type, True)
             key = (var.name, var.scope)

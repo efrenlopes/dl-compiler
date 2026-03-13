@@ -44,4 +44,3 @@ class BasicBlock:
 
     def __repr__(self) -> str:
         return f'<{str(self)}>'
-        #return f'<bb{self.number}: [{self.instructions[0]}]->[{self.instructions[-1]}]>'
