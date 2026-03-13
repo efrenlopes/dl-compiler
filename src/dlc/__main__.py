@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from dlc.codegen.codegen_x64 import CodeGeneratorX64
+from dlc.inter.interpreter import Interpreter
 from dlc.inter.ir import IR
 from dlc.inter.ssa import SSA
 from dlc.inter.ssa_opt import optimize_ssa
@@ -59,14 +60,14 @@ if __name__ == '__main__':
     print(ir, '\n')
     print('\n**** Interpretação do TAC ****')
     ir.plot()
-    ir.interpret()
+    Interpreter(ir).interpret()
     print('\n\n')
 
     ssa = SSA(ir)
     print("\n**** TAC-SSA ****")
     print(ssa)
     ssa.ir.plot()
-    ssa.ir.interpret()
+    Interpreter(ssa.ir).interpret()
     print('\n\n')
 
 
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     print(ssa.ir)
     ssa.ir.plot()
     print('\n\n**** Interpretação do TAC Otimizado ****')
-    ssa.ir.interpret()
+    Interpreter(ssa.ir).interpret()
     print('\n\n')
 
 
