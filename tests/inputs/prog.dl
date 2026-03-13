@@ -63,7 +63,7 @@ fim.##
 ##programa teste_laco inicio
     inteiro i, soma;
     i = 1;
-    leia(soma);
+    soma = 5;
     enquanto (i <= 10) inicio
         soma = soma + i;
         i = i + 1;

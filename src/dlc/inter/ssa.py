@@ -1,26 +1,43 @@
 from dlc.inter.basic_block import BasicBlock
 from dlc.inter.ir import IR
+from dlc.inter.operand import Temp
 from dlc.inter.operator import Operator
 from dlc.inter.phi_instr import PhiInstr
 from dlc.inter.ssa_operand import TempVersion
 
 
 class SSA:
-    def __init__(self, ir: IR):
+    def __init__(self, ir: IR) -> None:
         self.ir = ir
-        self._mem2reg()
-        self.dom = self._compute_dominators()
-        self.idom = self._compute_idom()  # Dominador Imediato
-        self.dom_tree = self._build_dom_tree()
-        self.df = self._compute_dominance_frontier()
-        self.phi = self._insert_phi()
-        self._rename()
-        self._remove_trivial_phis()
+        self.basic_blocks = ir.bb_sequence
+        self.entry = self.basic_blocks[0]
+        # Replace ALLOCA/STORE
+        self.__mem2reg()
+        # Dominators
+        self.dom: dict[BasicBlock, set[BasicBlock]]
+        self.__compute_dominators()
+        # Immediate dominators
+        self.idom: dict[BasicBlock, BasicBlock|None]
+        self.__compute_idom()
+        # Dominator Tree
+        self.dom_tree: dict[BasicBlock, list[BasicBlock]]
+        self.__build_dom_tree()
+        # Dominance Frontier
+        self.df: dict[BasicBlock, set[BasicBlock]]
+        self.__compute_dominance_frontier()
+        # Phi insertion
+        self.phi_map: dict[BasicBlock, dict[Temp, PhiInstr]]
+        self.__insert_phi()
+        # Rename
+        self.__rename()
+        self.__remove_trivial_phis()
 
-    def __str__(self):
+
+    def __str__(self) -> str:
         return str(self.ir)
-    
-    def _mem2reg(self): 
+
+
+    def __mem2reg(self) -> None: 
         for bb in self.ir.bb_sequence:
             for instr in bb.body_instrs[:]:
                 if instr.op == Operator.ALLOCA:
@@ -29,203 +46,204 @@ class SSA:
                     instr.op = Operator.MOVE
 
 
-    def _compute_dominators(self):
-        basic_blocks = self.ir.bb_sequence
-        entry = basic_blocks[0]
-        dom = {}
-
-        for bb in basic_blocks:
-            if bb == entry:
-                dom[bb] = {bb}
-            else:
-                dom[bb] = set(basic_blocks)
+    def __compute_dominators(self) -> None:
+        self.dom = {self.entry: {self.entry}}
+        for bb in self.basic_blocks[1:]:
+            self.dom[bb] = set(self.basic_blocks)
 
         changed = True
         while changed:
             changed = False
-            for bb in basic_blocks:
-                if bb == entry:
-                    continue
-
-                new_dom = set(basic_blocks)
+            for bb in self.basic_blocks[1:]:
+                new_dom = set(self.basic_blocks)
                 for p in bb.predecessors:
-                    new_dom &= dom[p]
+                    new_dom &= self.dom[p]
                 new_dom.add(bb)
 
-                if new_dom != dom[bb]:
-                    dom[bb] = new_dom
+                if new_dom != self.dom[bb]:
+                    self.dom[bb] = new_dom
                     changed = True
-
-        return dom
     
 
-    def _compute_idom(self):
-        basic_blocks = self.ir.bb_sequence
-        entry = basic_blocks[0]
-        idom = {entry: None}
-
-        for b in basic_blocks:
-            if b == entry:
-                continue
-
-            strict_doms = self.dom[b] - {b}
-
-            # idom é o dominador estrito que não é dominado por outro
+    def __compute_idom(self) -> None:
+        self.idom = {self.entry: None}
+        for bb in self.basic_blocks[1:]:
+            strict_doms = self.dom[bb] - {bb}
+            # idom is the strict dominator that is not dominated by any other
             for d in strict_doms:
-                if all(d == other or d not in self.dom[other]
-                    for other in strict_doms):
-                    idom[b] = d
+                if all(d == other or d not in self.dom[other] for other in strict_doms):
+                    self.idom[bb] = d
                     break
-        return idom
 
 
-
-    def _build_dom_tree(self):
-        basic_blocks = self.ir.bb_sequence
-        dom_tree = {b: [] for b in basic_blocks}
-
-        for bb in basic_blocks:
-            if self.idom[bb] is not None:
-                dom_tree[self.idom[bb]].append(bb)
-
-        return dom_tree
+    def __build_dom_tree(self) -> None:
+        self.dom_tree = {b: [] for b in self.basic_blocks}
+        for bb in self.basic_blocks:
+            idom_bb = self.idom[bb]
+            if idom_bb is not None:
+                self.dom_tree[idom_bb].append(bb)
 
     
-    
-    def _compute_dominance_frontier(self):
-        basic_blocks = self.ir.bb_sequence
-        df = {bb: set() for bb in basic_blocks}
-
-        for bb in basic_blocks:
+    def __compute_dominance_frontier(self) -> None:
+        self.df = {bb: set() for bb in self.basic_blocks}
+        for bb in self.basic_blocks:
             if len(bb.predecessors) >= 2:
-                for p in bb.predecessors:
-                    runner = p
+                for runner in bb.predecessors:
                     while runner is not None and runner != self.idom[bb]:
-                        df[runner].add(bb)
+                        self.df[runner].add(bb)
                         runner = self.idom[runner]
-        return df
 
 
 
-
-
-    def _insert_phi(self):
-        self.defsites = {}
+    def __insert_phi(self) -> None:
+        defsites: dict[Temp, set[BasicBlock]] = {}
         
-        # 1. Mapeia ONDE cada temporário é definido (não importa a instrução)
+        # Mapeia onde cada temporário que é definido
         for bb in self.ir.bb_sequence:
             for instr in bb.body_instrs:
-                if instr.result and instr.result.is_temp:
-                    v = instr.result
-                    self.defsites.setdefault(v, set()).add(bb)
+                if isinstance(instr.result, Temp):
+                    defsites.setdefault(instr.result, set()).add(bb)
 
-        # 2. Define quem ganha PHI:
-        # Qualquer variável com mais de um ponto de definição (defsite)
-        phi_vars = [v for v, sites in self.defsites.items() if len(sites) > 1]
+        # Ganha PHI qualquer variável com mais de um ponto de definição (defsite)
+        phi_vars = [v for v, sites in defsites.items() if len(sites) > 1]
 
-        # 3. Inserção iterada (Sua lógica de DF permanece a mesma)
-        phi_map = {bb: {} for bb in self.ir.bb_sequence}
+        # Inserção iterada
+        self.phi_map = {bb: {} for bb in self.ir.bb_sequence}
         for v in phi_vars:
-            w = list(self.defsites[v])
-            while w:
-                n = w.pop()
+            worklist = list(defsites[v])
+            while worklist:
+                n = worklist.pop()
                 for y in self.df[n]:
-                    if v not in phi_map[y]:
-                        phi_map[y][v] = PhiInstr()#Instr(Operator.PHI, Phi(), Operand.EMPTY, Operand.EMPTY)
-                        # Se y não era um local de definição original, adicione ao worklist
-                        if y not in self.defsites[v]:
-                            w.append(y)
-        return phi_map
+                    if v not in self.phi_map[y]:
+                        self.phi_map[y][v] = PhiInstr()
+                        # Se y não era um local de definição, adicione ao worklist
+                        if y not in defsites[v]:
+                            worklist.append(y)
 
 
 
 
-    def _rename(self):
+    def __rename(self) -> None:
         # Inicializa pilhas e contadores para cada variável
-        self.stack = {}
-        self.counters = {}
+        self.stack: dict[Temp, list[TempVersion]] = {}
+        self.counter: dict[Temp, int] = {}
         
         for bb in self.ir.bb_sequence:
-            for instr in bb: ###################### Verificar se aqui não basta que seja em body_instrs
-                # Coletamos todos os temporários possíveis (definições e usos)
+            # Coletamos todos os temporários possíveis (definições e usos)
+            for instr in bb:
                 for t in (instr.result, instr.arg1, instr.arg2):
-                    if t and t.is_temp and t not in self.stack:
-                        self.stack[t] = []
-                        self.counters[t] = 0
-                        
-        entry = self.ir.bb_sequence[0]
-        self._rename_block(entry)
+                    if isinstance(t, Temp) and t not in self.stack:
+                        self.stack.setdefault(t, [])
+                        self.counter.setdefault(t, 0)
+            # Fazer testes com esse for <<<<<<<<<<<<<<<<<<<<<<<<<<<
+            for temp in self.phi_map.get(bb, {}):
+                self.stack.setdefault(temp, [])
+                self.counter.setdefault(temp, 0)
+
+        self.__rename_block(self.entry)
 
 
+    def __rename_block(self, bb: BasicBlock) -> None:
+        defined_here: list[Temp] = []
 
+        # PHIs
+        for temp, phi_instr in self.phi_map.get(bb, {}).items():
+            self.counter[temp] += 1
+            new_version = TempVersion(temp, self.counter[temp])
+            self.stack[temp].append(new_version)
+            defined_here.append(temp)
+            phi_instr.result = new_version
+            bb.phi_instrs.append(phi_instr)
 
-
-    def _rename_block(self, bb: BasicBlock):
-        # Inserir PHIs no topo
-        # bb pode não estar no mapa phi se não tiver fronteira de dominância
-        phis_in_this_bb = self.phi.get(bb, {})
-        for v, instr in phis_in_this_bb.items(): 
-            # Incrementa contador e empilha nova versão para a PHI
-            self.counters[v] += 1
-            new_version = TempVersion(v, self.counters[v])
-            self.stack[v].append(new_version)
-            instr.result = new_version
-            bb.phi_instrs.append(instr) #phi_instrs.append(instr)
-
-
-        # Processar instruções (Versionamento Universal)
+        # instruções
         for instr in bb:
-            if instr.arg1.is_temp:
-                temp = instr.arg1
-                if self.stack[temp]:
-                    instr.arg1 = self.stack[temp][-1]
-
-            if instr.arg2.is_temp:
-                temp = instr.arg2
-                if self.stack[temp]:
-                    instr.arg2 = self.stack[temp][-1]
-
-            # Versiona Resultado (Definição)
-            if instr.result.is_temp:
+            # arg1
+            if isinstance(instr.arg1, Temp) and self.stack[instr.arg1]:
+                instr.arg1 = self.stack[instr.arg1][-1]
+            # arg2
+            if isinstance(instr.arg2, Temp) and self.stack[instr.arg2]:
+                instr.arg2 = self.stack[instr.arg2][-1]
+            # result
+            if isinstance(instr.result, Temp):
                 temp = instr.result
-                self.counters[temp] += 1
-                new_version = TempVersion(temp, self.counters[temp])
+                self.counter[temp] += 1
+                new_version = TempVersion(temp, self.counter[temp])
                 self.stack[temp].append(new_version)
+                defined_here.append(temp)
                 instr.result = new_version
 
-
-        # Preencher argumentos das PHIs nos sucessores
+        # preencher PHIs dos sucessores
         for succ in bb.successors:
-            for v, instr in self.phi[succ].items():
-                if v in self.stack and self.stack[v]:
-                    version = self.stack[v][-1]
-                    instr.add_path(bb, version)
+            for temp, phi_instr in self.phi_map.get(succ, {}).items():
+                if self.stack[temp]:
+                    phi_instr.add_path(bb, self.stack[temp][-1])
+
+        # DFS
+        for child in self.dom_tree.get(bb, []):
+            self.__rename_block(child)
+
+        # POP
+        for temp in reversed(defined_here):
+            self.stack[temp].pop()
+
+
+    def __remove_trivial_phis(self) -> None:
+        for bb in self.ir.bb_sequence:
+            for phi_instr in bb.phi_instrs[:]:
+                if isinstance(phi_instr, PhiInstr) and len(phi_instr.paths) == 1:
+                    bb.phi_instrs.remove(phi_instr)
+
+
+
+
+
+
+    # def __rename_block(self, bb: BasicBlock) -> None:
+    #     # Renomear PHIs - bb pode não estar no mapa phi se não tiver fronteira
+    #     phis_in_this_bb = self.phi_map.get(bb, {})
+    #     for temp, phi_instr in phis_in_this_bb.items(): 
+    #         # Incrementa contador e empilha nova versão para a PHI
+    #         self.counter[temp] += 1
+    #         new_version = TempVersion(temp, self.counter[temp])
+    #         self.stack[temp].append(new_version)
+    #         phi_instr.result = new_version
+    #         bb.phi_instrs.append(phi_instr)
+
+
+    #     # Processar instruções (Versionamento Universal)
+    #     for instr in bb:
+    #         # arg1
+    #         temp = instr.arg1
+    #         if isinstance(temp, Temp) and self.stack[temp]:
+    #             instr.arg1 = self.stack[temp][-1]
+    #         # arg2
+    #         temp = instr.arg2
+    #         if isinstance(temp, Temp) and self.stack[temp]:
+    #             instr.arg2 = self.stack[temp][-1]
+    #         # result
+    #         temp = instr.result
+    #         if isinstance(temp, Temp):
+    #             self.counter[temp] += 1
+    #             new_version = TempVersion(temp, self.counter[temp])
+    #             self.stack[temp].append(new_version)
+    #             instr.result = new_version
+
+
+    #     # Preencher argumentos das PHIs nos sucessores
+    #     for succ in bb.successors:
+    #         for temp, phi_instr in self.phi_map[succ].items():
+    #             if temp in self.stack and self.stack[temp]:
+    #                 version = self.stack[temp][-1]
+    #                 phi_instr.add_path(bb, version)
                     
 
+    #     # DFS na Árvore de Dominância
+    #     for child in self.dom_tree.get(bb, []):
+    #         self.__rename_block(child)
 
-        # DFS na Árvore de Dominância
-        for child in self.dom_tree.get(bb, []):
-            self._rename_block(child)
-
-        # Removemos da pilha apenas o que este bloco definiu
-        for instr in bb:
-            if instr.result and instr.result.is_temp_version:
-                origin_var = instr.result.origin
-                if origin_var in self.stack:
-                    self.stack[origin_var].pop()
-
-
-
-    def _remove_trivial_phis(self):
-        for bb in self.ir.bb_sequence:
-            for instr in bb.phi_instrs[:]:
-                if len(instr.paths) == 1:
-                    bb.phi_instrs.remove(instr)
-
-    # def _remove_trivial_phis(self):
-    #     for bb in self.ir.bb_sequence:
-    #         new_phi_instrs = []
-    #         for instr in bb.phi_instrs:
-    #             if len(instr.arg1.paths) >= 2:
-    #                 new_phi_instrs.append(instr)
-    #         bb.phi_instrs = new_phi_instrs
+    #     # Removemos da pilha apenas o que este bloco definiu
+    #     for phi_instr in bb:
+    #         if isinstance(phi_instr.result, TempVersion):
+    #             origin_var = phi_instr.result.origin
+    #             if origin_var in self.stack:
+    #                 self.stack[origin_var].pop()
