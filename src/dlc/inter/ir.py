@@ -383,7 +383,7 @@ class IR(Visitor[Temp | None]):
                 
                 match op:
                     case Operator.PHI:
-                        value = get_value( instr.arg1.paths.get(bb_prev) ) #value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna Operand.EMPTY como valor padrão para o caso de PHIs inúteis
+                        value = get_value( instr.paths.get(bb_prev) ) #value = get_value( instr.arg1.paths.get(bb_prev, Operand.EMPTY)) #retorna Operand.EMPTY como valor padrão para o caso de PHIs inúteis
                         mem[result] = value
                     case Operator.ALLOCA:
                         mem[result] = None

@@ -136,14 +136,14 @@ def phi_simplification(ssa: SSA):
     for bb in ssa.ir.bb_sequence:
         for instr in bb.phi_instrs[:]:
             #Remove dos PHIs os BBs que não existem mais
-            for path_bb in list(instr.arg1.paths):
+            for path_bb in list(instr.paths):
                 if path_bb not in ssa.ir.bb_sequence:
                     changed = True
-                    del instr.arg1.paths[path_bb]
+                    del instr.paths[path_bb]
             #PHIs com valor único são transformados em MOVEs
-            if len(instr.arg1.paths) == 1:
+            if len(instr.paths) == 1:
                 instr.op = Operator.MOVE
-                instr.arg1 = list(instr.arg1.paths.values())[0]
+                instr.arg1 = list(instr.paths.values())[0]
                 bb.phi_instrs.remove(instr)
                 bb.body_instrs.insert(0, instr)
     return changed
@@ -165,7 +165,7 @@ def dead_code_elimination(ssa: SSA) -> bool:
         for instr in bb:
             # PHIs são usos
             if instr.op == Operator.PHI:
-                for version in instr.arg1.paths.values():
+                for version in instr.paths.values():
                     if version.is_temp_version:
                         use_count[version] = use_count.get(version, 0) + 1
             else:
@@ -201,10 +201,9 @@ def merge_blocks(ssa: SSA):
                 # Corrigir PHIs nos sucessores do bloco que vai sumir
                 for grandson in succ.successors:
                     for instr in grandson.phi_instrs:
-                        phi_op = instr.arg1
                         # Se a PHI esperava algo vindo de 'succ', agora vem de 'bb'
-                        if succ in phi_op.paths:
-                            phi_op.paths[bb] = phi_op.paths.pop(succ)
+                        if succ in instr.paths:
+                            instr.paths[bb] = instr.paths.pop(succ)
                 
                 # --- Fusão ---
                 bb.goto_instr = succ.goto_instr

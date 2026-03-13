@@ -54,7 +54,7 @@ class LivenessAnalysis:
                     
                     # Checar se o sucessor tem PHIs que usam valores vindos deste bloco (bb)
                     for instr in succ.phi_instrs:
-                        version = instr.arg1.paths.get(bb)
+                        version = instr.paths.get(bb)
                         if version and version.is_temp_version and version.type in self.types:
                             new_out.add(version) # O valor deve estar vivo na saída de bb
                 

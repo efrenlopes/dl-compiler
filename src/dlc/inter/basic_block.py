@@ -4,12 +4,13 @@ from dlc.inter.instr import Instr
 class BasicBlock:
     
     __count = -1
-    label_instr: Instr
-
+ 
     def __init__(self) -> None:
         BasicBlock.__count += 1
         self.number = BasicBlock.__count
         #bb sections
+        self.label_instr: Instr|None = None
+
         self.phi_instrs = []
         self.body_instrs = []
         self.goto_instr = None

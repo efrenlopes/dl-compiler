@@ -142,7 +142,7 @@ class CodeGeneratorX64():
         # 1. Coletar cópias
         for instr in target_bb:
             if instr.op == Operator.PHI:
-                phi_var_version = instr.arg1.paths.get(current_bb)
+                phi_var_version = instr.paths.get(current_bb)
 
                 if phi_var_version:
                     dest = self.__resolve_arg(instr.result)

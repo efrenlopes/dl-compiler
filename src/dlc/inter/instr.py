@@ -31,16 +31,12 @@ class Instr:
                 return f'{op} {arg1}'
             case OP.READ:
                 return f'{op} {result}'
-            case OP.PHI:
-                return (f'{result} {OP.MOVE} {OP.PHI}('
-                        f'{", ".join(f"{bb}: {ver}" for bb, ver in arg1.paths.items())})')
             case OP.ALLOCA:
                 return f'{result} {OP.MOVE} {OP.ALLOCA}'
             case OP.STORE:
                 return f'{OP.STORE} {arg1}, {result}'
             case OP.LOAD:
                 return f'{result} {OP.MOVE} {OP.LOAD} {arg1}'
-
             case _: 
                 return f'{result} {OP.MOVE} {arg1} {op} {arg2}'
 

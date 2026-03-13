@@ -1,9 +1,8 @@
 from dlc.inter.basic_block import BasicBlock
 from dlc.inter.ir import IR
-from dlc.inter.instr import Instr
 from dlc.inter.operator import Operator
-from dlc.inter.operand import Operand
-from dlc.inter.ssa_operand import Phi, TempVersion
+from dlc.inter.phi_instr import PhiInstr
+from dlc.inter.ssa_operand import TempVersion
 
 
 class SSA:
@@ -21,18 +20,6 @@ class SSA:
     def __str__(self):
         return str(self.ir)
     
-    # def _mem2reg(self): 
-    #     for bb in self.ir.bb_sequence:
-    #         new_body_instrs = []
-    #         for instr in bb.body_instrs:
-    #             if instr.op == Operator.ALLOCA:
-    #                 continue                
-    #             elif instr.op in (Operator.STORE, Operator.LOAD):
-    #                 instr.op = Operator.MOVE 
-                
-    #             new_body_instrs.append(instr)
-    #         bb.body_instrs = new_body_instrs
-
     def _mem2reg(self): 
         for bb in self.ir.bb_sequence:
             for instr in bb.body_instrs[:]:
@@ -144,7 +131,7 @@ class SSA:
                 n = w.pop()
                 for y in self.df[n]:
                     if v not in phi_map[y]:
-                        phi_map[y][v] = Instr(Operator.PHI, Phi(), Operand.EMPTY, Operand.EMPTY)
+                        phi_map[y][v] = PhiInstr()#Instr(Operator.PHI, Phi(), Operand.EMPTY, Operand.EMPTY)
                         # Se y não era um local de definição original, adicione ao worklist
                         if y not in self.defsites[v]:
                             w.append(y)
@@ -212,7 +199,7 @@ class SSA:
             for v, instr in self.phi[succ].items():
                 if v in self.stack and self.stack[v]:
                     version = self.stack[v][-1]
-                    instr.arg1.add_path(bb, version)
+                    instr.add_path(bb, version)
                     
 
 
@@ -232,7 +219,7 @@ class SSA:
     def _remove_trivial_phis(self):
         for bb in self.ir.bb_sequence:
             for instr in bb.phi_instrs[:]:
-                if len(instr.arg1.paths) == 1:
+                if len(instr.paths) == 1:
                     bb.phi_instrs.remove(instr)
 
     # def _remove_trivial_phis(self):
