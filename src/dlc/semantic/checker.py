@@ -186,6 +186,9 @@ class Checker(Visitor[None]):
                 if common_type:
                     node.type = Type.BOOL
             case Tag.SUM | Tag.SUB | Tag.MUL | Tag.DIV | Tag.MOD | Tag.POW:
+                if node.operator == Tag.DIV and \
+                        isinstance(node.expr2, LiteralNode) and node.expr2.value == 0:
+                    self.__error(node.line, 'Divisão por zero')
                 if t1.is_numeric and t2.is_numeric:
                     node.type = common_type
             case Tag.LT | Tag.LE | Tag.GT | Tag.GE:

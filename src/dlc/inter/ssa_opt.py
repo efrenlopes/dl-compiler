@@ -1,13 +1,11 @@
 from dlc.inter.interpreter import Interpreter
-from dlc.inter.ssa import SSA
-from dlc.inter.ir import IR
-from dlc.inter.operator import Operator
 from dlc.inter.operand import Const, Operand
-
+from dlc.inter.operator import Operator
+from dlc.inter.ssa import SSA
 
 
 @staticmethod
-def optimize_ssa(ssa: SSA):
+def optimize_ssa(ssa: SSA) -> None:
     changed = True
 
     while changed:

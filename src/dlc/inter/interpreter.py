@@ -86,7 +86,7 @@ class Interpreter:
                     case Operator.LABEL:
                         continue
                     case Operator.IF:
-                        if value1:
+                        if bool(value1):
                             label = cast(Label, instr.arg2)
                             bb_next = self.ir.bb_from_label(label)
                         else:
@@ -96,7 +96,7 @@ class Interpreter:
                         label = cast(Label, instr.result)
                         bb_next = self.ir.bb_from_label(label)
                     case Operator.PRINT:
-                        if value1:
+                        if value1 is not None:
                             if isinstance(value1, float):
                                 print(f'output: {value1:.4f}')
                             else:
@@ -121,14 +121,19 @@ class Interpreter:
                     case Operator.MOVE:
                         mem[result] = value1
                     case _:
-                        if op in Interpreter.OP_BINARY \
-                                and value1 is not None and value2 is not None:
-                            value = Interpreter.OP_BINARY[op](value1, value2)
-                        elif op in Interpreter.OP_UNARY and value1 is not None:
-                            value = Interpreter.OP_UNARY[op](value1)
-                        else:
-                            raise RuntimeError('Operador não existe!')
-                        mem[result] = Interpreter.__normalize(value)
+                        try:
+                            if op in Interpreter.OP_BINARY \
+                                    and value1 is not None and value2 is not None:
+                                    value = Interpreter.OP_BINARY[op](value1, value2)
+                            elif op in Interpreter.OP_UNARY and value1 is not None:
+                                value = Interpreter.OP_UNARY[op](value1)
+                            else:
+                                raise RuntimeError('Operador não existe!')
+                            mem[result] = Interpreter.__normalize(value)
+                        except ZeroDivisionError:
+                            print('Divisão por zero!')
+                            return
+
 
             # BB transition
             bb_prev = bb
