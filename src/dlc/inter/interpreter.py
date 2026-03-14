@@ -62,7 +62,7 @@ class Interpreter:
             return None
 
         bb_prev = None
-        bb = self.ir.bb_sequence[0]
+        bb = self.ir.bb_entry
         while bb:
             bb_next = None
             for instr in bb:
@@ -122,18 +122,17 @@ class Interpreter:
                         mem[result] = value1
                     case _:
                         try:
-                            if op in Interpreter.OP_BINARY \
-                                    and value1 is not None and value2 is not None:
+                            if value1 is not None:
+                                if op in Interpreter.OP_UNARY:
+                                    value = Interpreter.OP_UNARY[op](value1)
+                                elif op in Interpreter.OP_BINARY and value2 is not None:
                                     value = Interpreter.OP_BINARY[op](value1, value2)
-                            elif op in Interpreter.OP_UNARY and value1 is not None:
-                                value = Interpreter.OP_UNARY[op](value1)
-                            else:
-                                raise RuntimeError('Operador não existe!')
-                            mem[result] = Interpreter.__normalize(value)
+                                else:
+                                    raise RuntimeError('Operador não existe!')
+                                mem[result] = Interpreter.__normalize(value)
                         except ZeroDivisionError:
                             print('Divisão por zero!')
                             return
-
 
             # BB transition
             bb_prev = bb

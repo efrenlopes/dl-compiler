@@ -9,8 +9,6 @@ from dlc.inter.ssa_operand import TempVersion
 class SSA:
     def __init__(self, ir: IR) -> None:
         self.ir = ir
-        self.basic_blocks = ir.bb_sequence
-        self.entry = self.basic_blocks[0]
         # Replace ALLOCA/STORE
         self.__mem2reg()
         # Dominators
@@ -47,15 +45,15 @@ class SSA:
 
 
     def __compute_dominators(self) -> None:
-        self.dom = {self.entry: {self.entry}}
-        for bb in self.basic_blocks[1:]:
-            self.dom[bb] = set(self.basic_blocks)
+        self.dom = {self.ir.bb_entry: {self.ir.bb_entry}}
+        for bb in self.ir.bb_sequence[1:]:
+            self.dom[bb] = set(self.ir.bb_sequence)
 
         changed = True
         while changed:
             changed = False
-            for bb in self.basic_blocks[1:]:
-                new_dom = set(self.basic_blocks)
+            for bb in self.ir.bb_sequence[1:]:
+                new_dom = set(self.ir.bb_sequence)
                 for p in bb.predecessors:
                     new_dom &= self.dom[p]
                 new_dom.add(bb)
@@ -66,8 +64,8 @@ class SSA:
     
 
     def __compute_idom(self) -> None:
-        self.idom = {self.entry: None}
-        for bb in self.basic_blocks[1:]:
+        self.idom = {self.ir.bb_entry: None}
+        for bb in self.ir.bb_sequence[1:]:
             strict_doms = self.dom[bb] - {bb}
             # idom is the strict dominator that is not dominated by any other
             for d in strict_doms:
@@ -77,22 +75,21 @@ class SSA:
 
 
     def __build_dom_tree(self) -> None:
-        self.dom_tree = {b: [] for b in self.basic_blocks}
-        for bb in self.basic_blocks:
+        self.dom_tree = {bb: [] for bb in self.ir.bb_sequence}
+        for bb in self.ir.bb_sequence:
             idom_bb = self.idom[bb]
             if idom_bb is not None:
                 self.dom_tree[idom_bb].append(bb)
 
     
     def __compute_dominance_frontier(self) -> None:
-        self.df = {bb: set() for bb in self.basic_blocks}
-        for bb in self.basic_blocks:
+        self.df = {bb: set() for bb in self.ir.bb_sequence}
+        for bb in self.ir.bb_sequence:
             if len(bb.predecessors) >= 2:
                 for runner in bb.predecessors:
                     while runner is not None and runner != self.idom[bb]:
                         self.df[runner].add(bb)
                         runner = self.idom[runner]
-
 
 
     def __insert_phi(self) -> None:
@@ -121,8 +118,6 @@ class SSA:
                             worklist.append(y)
 
 
-
-
     def __rename(self) -> None:
         # Inicializa pilhas e contadores para cada variável
         self.stack: dict[Temp, list[TempVersion]] = {}
@@ -140,7 +135,7 @@ class SSA:
                 self.stack.setdefault(temp, [])
                 self.counter.setdefault(temp, 0)
 
-        self.__rename_block(self.entry)
+        self.__rename_block(self.ir.bb_entry)
 
 
     def __rename_block(self, bb: BasicBlock) -> None:

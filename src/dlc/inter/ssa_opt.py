@@ -1,7 +1,12 @@
+from typing import cast
+
+from dlc.inter.basic_block import BasicBlock
 from dlc.inter.interpreter import Interpreter
-from dlc.inter.operand import Const, Operand
+from dlc.inter.operand import Const, Label, Operand
 from dlc.inter.operator import Operator
+from dlc.inter.phi_instr import PhiInstr
 from dlc.inter.ssa import SSA
+from dlc.inter.ssa_operand import TempVersion
 
 
 @staticmethod
@@ -51,27 +56,26 @@ def copy_propagation(ssa: SSA) -> bool:
 
 
 
-
-
 @staticmethod
 def constant_folding(ssa: SSA) -> bool:
     changed = False
     for bb in ssa.ir.bb_sequence:
         for instr in bb:
-            # 1. Verificar se é uma operação com argumento(s) constante(s)
-            if instr.op in Interpreter.OP_BINARY and instr.arg1.is_const and (instr.arg2.is_const or instr.arg2 == Operand.EMPTY):
-                try:
-                    # 2. Calcular o resultado em tempo de compilação
-                    val1 = instr.arg1.value
-                    val2 = instr.arg2.value if instr.arg2.is_const else None
-                    result_value = Interpreter.OP_BINARY[instr.op](val1, val2)
-                    # 3. Transformar a instrução em um MOVE de constante
-                    instr.op = Operator.MOVE
-                    instr.arg1 = Const(instr.result.type, result_value)
-                    instr.arg2 = Operand.EMPTY
-                    changed = True
-                except ZeroDivisionError:
-                    pass
+            op = instr.op
+            arg1 = instr.arg1
+            arg2 = instr.arg2
+            if isinstance(arg1, Const) and isinstance(instr.result, TempVersion):
+                if op in Interpreter.OP_UNARY:
+                    value = Interpreter.OP_UNARY[op](arg1.value)
+                elif isinstance(arg2, Const):
+                    value = Interpreter.OP_BINARY[op](arg1.value, arg2.value)
+                else:
+                    continue
+
+                instr.op = Operator.MOVE
+                instr.arg1 = Const(instr.result.type, value)
+                instr.arg2 = Operand.EMPTY
+                changed = True
     return changed
 
 
@@ -82,11 +86,12 @@ def branch_folding(ssa: SSA) -> bool:
     changed = False
     for bb in ssa.ir.bb_sequence:
         instr = bb.goto_instr
-        # Verifica se a condição do IF é uma constante
-        if instr and instr.op == Operator.IF and instr.arg1.is_const: #O goto do último BB sempre é None
+        # Verifica se a condição do IF é constante (goto do último BB sempre é None)
+        if instr and instr.op == Operator.IF and isinstance(instr.arg1, Const): 
             # Decide o caminho a ser tomado
-            keep_label, dead_label = (instr.arg2, instr.result) if instr.arg1.value else (instr.result, instr.arg2)
-            bb_dead = ssa.ir.bb_from_label(dead_label)
+            keep_label, dead_label = (instr.arg2, instr.result) if instr.arg1.value \
+                                else (instr.result, instr.arg2)
+            bb_dead = ssa.ir.bb_from_label(cast(Label, dead_label))
             bb_dead.predecessors.remove(bb)
             bb.successors.remove(bb_dead)
             # Transforma o IF em um GOTO para o bloco correto
@@ -103,20 +108,24 @@ def branch_folding(ssa: SSA) -> bool:
 @staticmethod
 def unreachable_code_elimination(ssa: SSA) -> bool:
     changed = False
-    reachable_labels = set()
+    reachable_labels: set[Label] = set()
 
     # 1. Coletar todos os labels que são alvos de saltos (GOTO ou IF)
-    reachable_labels.add(ssa.ir.bb_sequence[0].label_instr.result)
+    assert ssa.ir.bb_entry.label_instr is not None
+    entry_label = cast(Label, ssa.ir.bb_entry.label_instr.result)
+    reachable_labels.add(entry_label)
+
     for bb in ssa.ir.bb_sequence:
         instr = bb.goto_instr
         if instr:
             for arg in (instr.arg2, instr.result):
-                if arg.is_label:
+                if isinstance(arg, Label):
                     reachable_labels.add(arg)
 
     # 2. Manter apenas os blocos que são o Entry Block (o primeiro) ou que têm um label atingível
-    new_bb_sequence = []
+    new_bb_sequence: list[BasicBlock] = []
     for bb in ssa.ir.bb_sequence:
+        assert(bb.label_instr is not None)
         if bb.label_instr.result in reachable_labels:
             new_bb_sequence.append(bb)
         else:
@@ -130,11 +139,12 @@ def unreachable_code_elimination(ssa: SSA) -> bool:
 
 
 @staticmethod
-def phi_simplification(ssa: SSA):
+def phi_simplification(ssa: SSA) -> bool:
     changed = False
     for bb in ssa.ir.bb_sequence:
         for instr in bb.phi_instrs[:]:
             #Remove dos PHIs os BBs que não existem mais
+            assert(isinstance(instr, PhiInstr))
             for path_bb in list(instr.paths):
                 if path_bb not in ssa.ir.bb_sequence:
                     changed = True
@@ -157,27 +167,27 @@ def phi_simplification(ssa: SSA):
 @staticmethod
 def dead_code_elimination(ssa: SSA) -> bool:
     changed = False
-    use_count = {}
+    use_count: dict[TempVersion, int] = {}
 
     # 1. Contagem rigorosa
     for bb in ssa.ir.bb_sequence:
         for instr in bb:
             # PHIs são usos
-            if instr.op == Operator.PHI:
+            if isinstance(instr, PhiInstr):
                 for version in instr.paths.values():
-                    if version.is_temp_version:
+                    if isinstance(version, TempVersion):
                         use_count[version] = use_count.get(version, 0) + 1
             else:
                 # Contar usos em arg1 e arg2 de QUALQUER instrução, incluindo IFs
-                for op in (instr.arg1, instr.arg2):
-                    if op.is_temp_version:
-                        use_count[op] = use_count.get(op, 0) + 1
+                for arg in (instr.arg1, instr.arg2):
+                    if isinstance(arg, TempVersion):
+                        use_count[arg] = use_count.get(arg, 0) + 1
 
     # 2. Remoção
     for bb in ssa.ir.bb_sequence:
         for instr in list(bb):
             res = instr.result
-            if res.is_temp_version and use_count.get(res, 0) == 0:
+            if isinstance(res, TempVersion) and use_count.get(res, 0) == 0:
                 changed = True
                 if instr.op == Operator.PHI:
                     bb.phi_instrs.remove(instr)
@@ -189,7 +199,7 @@ def dead_code_elimination(ssa: SSA) -> bool:
 
 
 @staticmethod
-def merge_blocks(ssa: SSA):
+def merge_blocks(ssa: SSA) -> bool:
     changed = False
     i = 0
     while i < len(ssa.ir.bb_sequence):

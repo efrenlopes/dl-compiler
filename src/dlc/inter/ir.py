@@ -54,9 +54,9 @@ class IR(Visitor[Operand]):
         self.__comments: dict[Instr, str] = {}
         # Entry Basic Block
         L0 = Label()
-        bb_entry = BasicBlock()
-        self.label_bb_map[L0] = bb_entry
-        self.__bb_current = bb_entry
+        self.bb_entry = BasicBlock()
+        self.label_bb_map[L0] = self.bb_entry
+        self.__bb_current = self.bb_entry
         self.add_instr( Instr(Operator.LABEL, Operand.EMPTY, Operand.EMPTY, L0 ))
         # Starting IR generation
         ast.root.accept(self)
