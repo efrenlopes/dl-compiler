@@ -8,7 +8,7 @@ from dlc.semantic.type import Type
 class LivenessAnalysis:
 
 
-    def __init__(self, ssa: SSA, types: tuple[Type]) -> None:
+    def __init__(self, ssa: SSA, types: tuple[Type, ...]) -> None:
         self.ssa = ssa
         self.__types = types        
         # Variáveis usadas antes de serem definidas no bloco

@@ -1,11 +1,16 @@
 from dlc.codegen.interference_graph import InterferenceGraph
 from dlc.codegen.live_analysis import LivenessAnalysis
-from dlc.inter.ssa import SSA
+from dlc.inter.basic_block import BasicBlock
+from dlc.inter.operand import Const, Label, Operand
 from dlc.inter.operator import Operator
+from dlc.inter.phi_instr import PhiInstr
+from dlc.inter.ssa import SSA
+from dlc.inter.ssa_operand import TempVersion
 from dlc.semantic.type import Type
 
 
-class CodeGeneratorX64():
+class CodeGeneratorX64:
+
     OP_ARITH_INT = {
             Operator.SUM: 'add',
             Operator.SUB: 'sub', 
@@ -76,8 +81,9 @@ class CodeGeneratorX64():
         Type.REAL: 'xmm0'
     }
 
-    INT_REGISTERS = ['r12d', 'r13d', 'r14d', 'r15d'] #Registradores inteiros de 32 bits callee-saved
-    DOUBLE_REGISTERS = [] #Todos as variáveis double ficarão na pilha
+    #Registradores callee-saved por tipo
+    INT_REGISTERS: list[str] = ['r12d', 'r13d', 'r14d', 'r15d']
+    DOUBLE_REGISTERS: list[str] = []
 
 
 
@@ -86,51 +92,47 @@ class CodeGeneratorX64():
         return (size + 15) // 16 * 16
     
 
-    def __resolve_arg(self, arg):
-        if arg.is_label:
+    def __resolve_arg(self, arg: Operand) -> str | None:
+        if isinstance(arg, Label):
             return f'L{arg.number}'
-        elif arg.is_const:
+        elif isinstance(arg, Const):
             if arg.type.is_float:
                 if arg.value not in self.const_map:
                     n = len(self.const_map)
                     self.const_map[arg.value] = f'const_{n}'
                 return f'[rip + {self.const_map[arg.value]}]'
             return str(arg)
-        if arg in self.reg_alloc:
+        elif arg in self.reg_alloc:
+            assert(isinstance(arg, TempVersion))
             return self.reg_alloc[arg]
         elif arg in self.mem_alloc:
+            assert(isinstance(arg, TempVersion))
             offset = self.mem_alloc[arg]
             return f'[rbp - {offset}]'
+        return None
 
     
 
 
-    def __resolve_phis(self, current_bb, target_label):
+    def __resolve_phis(self, current_bb: BasicBlock, target_label: Label) -> None:
         target_bb = self.ssa.ir.bb_from_label(target_label)
-        if not target_bb:
-            return
-
-        copies = []
+        copies: list[tuple[str, str, Type]] = []
 
         # 1. Coletar cópias
-        for instr in target_bb:
-            if instr.op == Operator.PHI:
-                phi_var_version = instr.paths.get(current_bb)
-
-                if phi_var_version:
-                    dest = self.__resolve_arg(instr.result)
-                    src = self.__resolve_arg(phi_var_version)
-
-                    if dest != src:
-                        copies.append((dest, src, phi_var_version.type))
+        for instr in target_bb.phi_instrs:
+            assert(isinstance(instr, PhiInstr))
+            phi_temp = instr.paths.get(current_bb)
+            if phi_temp:
+                dest = self.__resolve_arg(instr.result)
+                src = self.__resolve_arg(phi_temp)
+                if dest and src and dest != src:
+                    assert(isinstance(phi_temp, TempVersion))
+                    copies.append((dest, src, phi_temp.type))
 
         if not copies:
             return
 
         self.code.append(f'\t# --- Resolvendo PHIs para {target_label} ---')
-
-        copies = list(copies)
-
         while copies:
             progress = False
             # 2. procurar cópia segura
@@ -156,7 +158,7 @@ class CodeGeneratorX64():
 
 
 
-    def __init__(self, ssa: SSA):
+    def __init__(self, ssa: SSA) -> None:
         # Análise de vivacidade
         self.ssa = ssa
         int_liveness = LivenessAnalysis(ssa, types=(Type.INT, Type.BOOL))
@@ -195,12 +197,13 @@ class CodeGeneratorX64():
             
         double_stack_top = int_ig.spill_slots_count * Type.INT.size
         for k in double_mem_alloc:
-            double_mem_alloc[k] = double_stack_top + (double_mem_alloc[k] + 1) * Type.REAL.size
+            double_mem_alloc[k] = \
+                double_stack_top + (double_mem_alloc[k] + 1) * Type.REAL.size
 
 
         # Atributos
-        self.const_map = {}
-        self.code = []
+        self.const_map: dict[float, str] = {}
+        self.code: list[str] = []
         self.reg_alloc = int_reg_alloc | double_reg_alloc
         self.mem_alloc = int_mem_alloc | double_mem_alloc
 
