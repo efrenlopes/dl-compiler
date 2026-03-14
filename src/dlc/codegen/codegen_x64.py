@@ -105,33 +105,6 @@ class CodeGeneratorX64():
     
 
 
-    # def __resolve_phis(self, current_bb, target_label):
-    #     target_bb = self.ssa.ic.bb_from_label(target_label)
-    #     if not target_bb:
-    #         return
-
-    #     # 1. Coletamos todos os movimentos necessários antes de executar qualquer um
-    #     moves = []
-    #     for instr in target_bb.instructions:
-    #         if instr.op == SSAOperator.PHI:
-    #             phi_var_version = instr.arg1.paths.get(current_bb)
-    #             if phi_var_version:
-    #                 dest = self.__resolve_arg(instr.result)
-    #                 src = self.__resolve_arg(phi_var_version)
-
-    #                 if dest != src:
-    #                     moves.append((dest, src, phi_var_version.type))
-
-    #     self.code.append(f'\t# --- Resolvendo PHIs para {target_label} ---')
-
-    #     for dest, src, v_type in moves:
-    #         instr_mov = self.MOVE[v_type]
-    #         phi_reg = self.PHI_REG[v_type]
-
-    #         self.code.append(f'\t{instr_mov} {phi_reg}, {src}')
-    #         self.code.append(f'\t{instr_mov} {dest}, {phi_reg}')
-
-
     def __resolve_phis(self, current_bb, target_label):
         target_bb = self.ssa.ir.bb_from_label(target_label)
         if not target_bb:
@@ -192,6 +165,21 @@ class CodeGeneratorX64():
 
         int_ig = InterferenceGraph(int_liveness, self.INT_REGISTERS)
         double_ig =  InterferenceGraph(double_liveness, self.DOUBLE_REGISTERS)
+
+        ####################
+        # int_ig.print_allocation_summary()
+        # print('alocacao de registradores para inteiros')
+        # print(int_ig.reg_alloc)
+        # print('alocacao de memoria para inteiros')
+        # print(int_ig.mem_alloc)
+
+        # double_ig.print_allocation_summary()
+        # print('alocacao de registradores para reais')
+        # print(double_ig.reg_alloc)
+        # print('alocacao de memoria para reais')
+        # print(double_ig.mem_alloc)
+        ####################
+
 
         int_reg_alloc = int_ig.reg_alloc
         int_mem_alloc = int_ig.mem_alloc
