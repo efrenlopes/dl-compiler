@@ -123,7 +123,7 @@ def unreachable_code_elimination(ssa: SSA) -> bool:
                 if isinstance(arg, Label):
                     reachable_labels.add(arg)
 
-    # 2. Manter apenas os blocos que são o Entry Block (o primeiro) ou que têm um label atingível
+    # 2. Manter apenas os blocos que têm um label atingível
     new_bb_sequence: list[BasicBlock] = []
     for bb in ssa.ir.bb_sequence:
         assert(bb.label_instr is not None)
