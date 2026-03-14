@@ -185,7 +185,8 @@ class SSA:
     def __remove_trivial_phis(self) -> None:
         for bb in self.ir.bb_sequence:
             for phi_instr in bb.phi_instrs[:]:
-                if isinstance(phi_instr, PhiInstr) and len(phi_instr.paths) == 1:
+                assert( isinstance(phi_instr, PhiInstr))
+                if len(phi_instr.paths) == 1:
                     bb.phi_instrs.remove(phi_instr)
 
 

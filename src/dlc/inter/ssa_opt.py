@@ -64,7 +64,7 @@ def constant_folding(ssa: SSA) -> bool:
             op = instr.op
             arg1 = instr.arg1
             arg2 = instr.arg2
-            if isinstance(arg1, Const) and isinstance(instr.result, TempVersion):
+            if isinstance(arg1, Const):
                 if op in Interpreter.OP_UNARY:
                     value = Interpreter.OP_UNARY[op](arg1.value)
                 elif isinstance(arg2, Const):
@@ -72,9 +72,10 @@ def constant_folding(ssa: SSA) -> bool:
                 else:
                     continue
 
-                instr.op = Operator.MOVE
+                assert(isinstance(instr.result, TempVersion))
                 instr.arg1 = Const(instr.result.type, value)
                 instr.arg2 = Operand.EMPTY
+                instr.op = Operator.MOVE
                 changed = True
     return changed
 
@@ -175,8 +176,8 @@ def dead_code_elimination(ssa: SSA) -> bool:
             # PHIs são usos
             if isinstance(instr, PhiInstr):
                 for version in instr.paths.values():
-                    if isinstance(version, TempVersion):
-                        use_count[version] = use_count.get(version, 0) + 1
+                    assert(isinstance(version, TempVersion))
+                    use_count[version] = use_count.get(version, 0) + 1
             else:
                 # Contar usos em arg1 e arg2 de QUALQUER instrução, incluindo IFs
                 for arg in (instr.arg1, instr.arg2):

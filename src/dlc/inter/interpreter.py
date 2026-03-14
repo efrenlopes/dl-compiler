@@ -96,25 +96,25 @@ class Interpreter:
                         label = cast(Label, instr.result)
                         bb_next = self.ir.bb_from_label(label)
                     case Operator.PRINT:
-                        if value1 is not None:
-                            if isinstance(value1, float):
-                                print(f'output: {value1:.4f}')
-                            else:
-                                print(f'output: {int(value1)}')
+                        assert(value1 is not None)
+                        if isinstance(value1, float):
+                            print(f'output: {value1:.4f}')
+                        else:
+                            print(f'output: {int(value1)}')
                     case Operator.READ:
                         try:
-                            if isinstance(result, (Temp, TempVersion)):
-                                i = input('input: ')
-                                match result.type:
-                                    case Type.BOOL:
-                                        i = bool(int(i))
-                                    case Type.INT:
-                                        i = int(i)
-                                    case Type.REAL:
-                                        i = float(i)
-                                    case _:
-                                        raise RuntimeError('Não é um tipo válido!')
-                                mem[result] = i
+                            assert(isinstance(result, (Temp, TempVersion)))
+                            i = input('input: ')
+                            match result.type:
+                                case Type.BOOL:
+                                    i = bool(int(i))
+                                case Type.INT:
+                                    i = int(i)
+                                case Type.REAL:
+                                    i = float(i)
+                                case _:
+                                    raise RuntimeError('Não é um tipo válido!')
+                            mem[result] = i
                         except ValueError:
                             print('Entrada de dados inválida! Interpretação encerrada.')
                             return
