@@ -90,8 +90,7 @@ class Lexer:
         """
         if (self.peek == '\n'):
             self.line += 1
-        peek = self.__input.read(1)
-        return peek
+        return self.__input.read(1)
 
 
 

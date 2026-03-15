@@ -85,7 +85,7 @@ fim.##
     escreva(soma);
 fim.##
 
-programa primo inicio
+programa primo_area_potencia inicio
     inteiro i, num;
     booleano eh_primo;
     
