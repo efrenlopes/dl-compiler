@@ -26,18 +26,10 @@ class InterferenceGraph:
         for var in self.__liveness.vars:
             self.__graph.setdefault(var, set())
 
-        # Processa cada bloco
+        # Interferência em cada bloco (bottom-up)
         for bb in self.__liveness.ssa.ir.bb_sequence:
-
-            # Conjunto de variáveis vivas na saída do bloco
             live = set(self.__liveness.live_out[bb])
-
-
-            # -------------------------------------------------
-            # INTERFERÊNCIA DENTRO DO BLOCO (BOTTOM-UP)
-            # -------------------------------------------------
-            #instrs = list(reversed(bb.phi_instrs + bb.body_instrs))
-            for instr in reversed(bb.body_instrs):
+            for instr in reversed(list(bb)):
                 # DEF
                 res = instr.result
                 if isinstance(res, TempVersion) and res in self.__liveness.vars:
@@ -74,7 +66,7 @@ class InterferenceGraph:
                 node = nodes.pop()
                 stack.append(node)
 
-        # 2. Seleção de Cores
+        # Seleção de cores (registradores)
         spilled_nodes: list[TempVersion] = []
         while stack:
             node = stack.pop()
@@ -86,11 +78,11 @@ class InterferenceGraph:
                     self.reg_alloc[node] = reg
                     break
             else:
-                colors[node] = '' # Variável vai para a pilha (RAM)
+                colors[node] = '' # Variável vai para a memória
                 spilled_nodes.append(node)
         
         for node in spilled_nodes:
-            # Pegamos os slots de memória já ocupados pelos vizinhos
+            # Pega os slots de memória já ocupados pelos vizinhos
             neighbor_mem_slots = {self.mem_alloc[v] for v in self.__graph[node] 
                                 if v in self.mem_alloc}
             slot = 0
@@ -98,7 +90,7 @@ class InterferenceGraph:
                 slot += 1
             if slot >= self.spill_slots_count:
                 self.spill_slots_count = slot+1
-            self.mem_alloc[node] = slot    # Dicionário específico de memória
+            self.mem_alloc[node] = slot
 
         
 

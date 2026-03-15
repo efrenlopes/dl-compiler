@@ -17,26 +17,23 @@ class SSAPhiEliminator:
     def __eliminate_phi(self) -> None:
         for bb in self.ssa.ir.bb_sequence:
 
-            # if not bb.phi_instrs:
-            #     continue
-
             copies_by_pred: dict[BasicBlock, list[tuple[TempVersion, TempVersion]]] = {}
 
             # coletar cópias
             for phi in bb.phi_instrs:
                 assert(isinstance(phi, PhiInstr))
-                dest = phi.result
+                res = phi.result
 
                 for pred, src in phi.paths.items():
-                    if src == dest:
+                    if src == res:
                         continue
-                    assert(isinstance(dest, TempVersion) and isinstance(src, TempVersion))
-                    copies_by_pred.setdefault(pred, []).append((dest, src))
+                    assert isinstance(res, TempVersion) and isinstance(src, TempVersion)
+                    copies_by_pred.setdefault(pred, []).append((res, src))
 
             # resolver cópias em cada predecessor
             for pred, copies in copies_by_pred.items():
-                for dest, src in copies:
-                    move = Instr(Operator.MOVE, src, Operand.EMPTY, dest)
-                    pred.body_instrs.append(move) #insert(-1, move)
+                for res, src in copies:
+                    move = Instr(Operator.MOVE, src, Operand.EMPTY, res)
+                    pred.body_instrs.append(move)
 
             bb.phi_instrs.clear()
