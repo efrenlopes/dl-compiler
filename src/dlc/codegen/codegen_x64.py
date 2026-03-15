@@ -1,6 +1,5 @@
 from dlc.codegen.interference_graph import InterferenceGraph
 from dlc.codegen.live_analysis import LivenessAnalysis
-from dlc.codegen.ssa_phi_elimination import SSAPhiEliminator
 from dlc.inter.operand import Const, Label, Operand
 from dlc.inter.operator import Operator
 from dlc.inter.ssa import SSA
@@ -113,8 +112,6 @@ class CodeGeneratorX64:
 
     def __init__(self, ssa: SSA) -> None:
         self.ssa = ssa
-        # Eliminação de instruções Phi
-        SSAPhiEliminator(self.ssa)
         # Análise de vivacidade
         int_liveness = LivenessAnalysis(ssa, types=(Type.INT, Type.BOOL))
         double_liveness = LivenessAnalysis(ssa, types=(Type.REAL,))

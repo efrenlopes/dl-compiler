@@ -9,17 +9,13 @@ import sys
 from pathlib import Path
 
 from dlc.codegen.codegen_x64 import CodeGeneratorX64
-from dlc.codegen.interference_graph import InterferenceGraph
-from dlc.codegen.live_analysis import LivenessAnalysis
-from dlc.codegen.ssa_phi_elimination import SSAPhiEliminator
 from dlc.inter.interpreter import Interpreter
 from dlc.inter.ir import IR
 from dlc.inter.ssa import SSA
 from dlc.inter.ssa_opt import optimize_ssa
+from dlc.inter.ssa_phi_elimination import SSAPhiEliminator
 from dlc.lex.lexer import Lexer
-from dlc.lex.tag import Tag
 from dlc.semantic.checker import Checker
-from dlc.semantic.type import Type
 from dlc.syntax.parser import Parser
 
 if __name__ == '__main__':
@@ -28,26 +24,18 @@ if __name__ == '__main__':
         print('Argumentos inválidos! Esperado um caminho ' +
               'de arquivo para um programa na linguagem DL.')
         exit()
+
+
+    #Análise Léxica & Sintática
     file_input = sys.argv[1]
-
-    #Análise Léxica
-    lexer = Lexer(open(file_input, 'r'))
-    # print(lexer.trie)
-    # token = lexer.next_token()
-    # while token.tag != Tag.EOF:
-    #     print(token)
-    #     token = lexer.next_token()
-    # print(token)
-    # exit()
-
-
-    #Análise Sintática
-    parser = Parser(lexer)
-    if parser.had_errors:
-        exit()
-    ast = parser.ast
-    print('\n**** AST ****')
-    print(ast, '\n')
+    with open(file_input) as f:
+        lexer = Lexer(f)
+        parser = Parser(lexer)
+        if parser.had_errors:
+            exit()
+        ast = parser.ast
+        print('\n**** AST ****')
+        print(ast, '\n')
 
 
     #Análise Semântica
@@ -58,7 +46,7 @@ if __name__ == '__main__':
     print(ast, '\n')
 
 
-    #Geração de Código Intermediário
+    # Geração de Código Intermediário
     ir = IR(ast)
     print("\n**** TAC ****")
     print(ir, '\n')
@@ -67,6 +55,8 @@ if __name__ == '__main__':
     Interpreter(ir).interpret()
     print('\n\n')
 
+
+    # SSA
     ssa = SSA(ir)
     print("\n**** TAC-SSA ****")
     print(ssa)
@@ -75,6 +65,7 @@ if __name__ == '__main__':
     print('\n\n')
 
 
+    # Otimização
     optimize_ssa(ssa)
     print("\n**** TAC-SSA otimizada ****")
     print(ssa.ir)
@@ -84,6 +75,7 @@ if __name__ == '__main__':
     print('\n\n')
 
 
+    # Eliminação de Instruções Phi
     print('\n\nTAC Phi Eliminated')
     elim = SSAPhiEliminator(ssa)
     print(elim.ssa.ir)
@@ -93,20 +85,27 @@ if __name__ == '__main__':
 
     #Geração de código x64
     cgx64 = CodeGeneratorX64(ssa)
-    #print(cgx64.reg_alloc)
-    #print(cgx64.mem_alloc)
     file_name = 'out/prog.s'
     Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-    file = open(file_name, 'w')
-    file.write('\n'.join(cgx64.code))
-    file.close()
+    with open(file_name, 'w') as f:
+        f.write('\n'.join(cgx64.code))
     print('\n\n**** Saída do programa alvo gerado ****')
     subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
     subprocess.run(['./out/prog'], check=True)
 
-
     #Fim
     print('\nCompilação concluída com sucesso!')
+
+
+
+
+
+
+
+
+
+
+
 
 
 
