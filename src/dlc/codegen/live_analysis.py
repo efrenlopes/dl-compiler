@@ -1,5 +1,4 @@
 from dlc.inter.basic_block import BasicBlock
-from dlc.inter.phi_instr import PhiInstr
 from dlc.inter.ssa import SSA
 from dlc.inter.ssa_operand import TempVersion
 from dlc.semantic.type import Type
@@ -63,14 +62,6 @@ class LivenessAnalysis:
                 for succ in bb.successors:
                     new_out |= self.live_in[succ]
                     
-                    # Checar se o sucessor tem PHIs que usam valores vindos deste bloco
-                    for instr in succ.phi_instrs:
-                        assert( isinstance(instr, PhiInstr))
-                        version = instr.paths.get(bb)
-                        if version and isinstance(version, TempVersion) and \
-                                version.type in self.__types:
-                            new_out.add(version)
-                
                 if new_out != self.live_out[bb]:
                     self.live_out[bb] = new_out
                     changed = True

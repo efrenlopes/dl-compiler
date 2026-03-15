@@ -1,6 +1,6 @@
 from dlc.inter.basic_block import BasicBlock
 from dlc.inter.instr import Instr
-from dlc.inter.operand import Operand, Temp
+from dlc.inter.operand import Operand
 from dlc.inter.operator import Operator
 from dlc.inter.phi_instr import PhiInstr
 from dlc.inter.ssa import SSA
@@ -17,8 +17,8 @@ class SSAPhiEliminator:
     def __eliminate_phi(self) -> None:
         for bb in self.ssa.ir.bb_sequence:
 
-            if not bb.phi_instrs:
-                continue
+            # if not bb.phi_instrs:
+            #     continue
 
             copies_by_pred: dict[BasicBlock, list[tuple[TempVersion, TempVersion]]] = {}
 
@@ -35,36 +35,8 @@ class SSAPhiEliminator:
 
             # resolver cópias em cada predecessor
             for pred, copies in copies_by_pred.items():
-                scheduled = self.__schedule_parallel_copies(copies)
-                for dest, src in scheduled:
+                for dest, src in copies:
                     move = Instr(Operator.MOVE, src, Operand.EMPTY, dest)
                     pred.body_instrs.append(move) #insert(-1, move)
 
             bb.phi_instrs.clear()
-
-    def __schedule_parallel_copies(self, 
-            copies: list[tuple[TempVersion, TempVersion]]) -> \
-                list[tuple[TempVersion, TempVersion]]:
-        copies = copies[:]
-        result: list[tuple[TempVersion, TempVersion]] = []
-
-        while copies:
-            progress = False
-
-            for dest, src in copies:
-                if dest not in [s for _, s in copies]:
-                    result.append((dest, src))
-                    copies.remove((dest, src))
-                    progress = True
-                    break
-
-            if progress:
-                continue
-
-            # ciclo
-            dest, src = copies.pop(0)
-            temp = TempVersion(Temp(src.type), 1)
-            result.append((temp, src))
-            copies.append((dest, temp))
-
-        return result

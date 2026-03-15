@@ -36,8 +36,8 @@ class InterferenceGraph:
             # -------------------------------------------------
             # INTERFERÊNCIA DENTRO DO BLOCO (BOTTOM-UP)
             # -------------------------------------------------
-            instrs = list(reversed(bb.phi_instrs + bb.body_instrs))
-            for instr in instrs:
+            #instrs = list(reversed(bb.phi_instrs + bb.body_instrs))
+            for instr in reversed(bb.body_instrs):
                 # DEF
                 res = instr.result
                 if isinstance(res, TempVersion) and res in self.__liveness.vars:
