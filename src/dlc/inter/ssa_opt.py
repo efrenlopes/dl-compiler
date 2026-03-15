@@ -1,6 +1,7 @@
 from typing import cast
 
 from dlc.inter.basic_block import BasicBlock
+from dlc.inter.instr import Instr
 from dlc.inter.interpreter import Interpreter
 from dlc.inter.operand import Const, Label, Operand
 from dlc.inter.operator import Operator
@@ -147,15 +148,17 @@ def phi_simplification(ssa: SSA) -> bool:
             #Remove dos PHIs os BBs que não existem mais
             assert(isinstance(instr, PhiInstr))
             for path_bb in list(instr.paths):
-                if path_bb not in bb.predecessors: #ssa.ir.bb_sequence:
+                if path_bb not in ssa.ir.bb_sequence:
                     changed = True
                     del instr.paths[path_bb]
             #PHIs com valor único são transformados em MOVEs
             if len(instr.paths) == 1:
                 instr.op = Operator.MOVE
-                instr.arg1 = list(instr.paths.values())[0]
+                arg1 = list(instr.paths.values())[0]
+                result = instr.result
+                move_instr = Instr(Operator.MOVE, arg1, Operand.EMPTY, result)
                 bb.phi_instrs.remove(instr)
-                bb.body_instrs.insert(0, instr)
+                bb.body_instrs.insert(0, move_instr)
     return changed
 
 

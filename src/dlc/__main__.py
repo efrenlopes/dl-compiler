@@ -113,23 +113,28 @@ if __name__ == '__main__':
 
 
 
+
+
+    #Geração de código x64
+    cgx64 = CodeGeneratorX64(ssa)
+    #print(cgx64.reg_alloc)
+    #print(cgx64.mem_alloc)
+    file_name = 'out/prog.s'
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    file = open(file_name, 'w')
+    file.write('\n'.join(cgx64.code))
+    file.close()
+    print('\n\n**** Saída do programa alvo gerado ****')
+    subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
+    subprocess.run(['./out/prog'], check=True)
+
+
     print('\n\nSSA Phi Eliminated')
     elim = SSAPhiEliminator(ssa)
     print(elim.ssa.ir)
 
 
-    # #Geração de código x64
-    # cgx64 = CodeGeneratorX64(ssa)
-    # #print(cgx64.reg_alloc)
-    # #print(cgx64.mem_alloc)
-    # file_name = 'out/prog.s'
-    # Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-    # file = open(file_name, 'w')
-    # file.write('\n'.join(cgx64.code))
-    # file.close()
-    # print('\n\n**** Saída do programa alvo gerado ****')
-    # subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
-    # subprocess.run(['./out/prog'], check=True)
+
 
     #Fim
     print('\nCompilação concluída com sucesso!')
