@@ -10,18 +10,6 @@ class Operand(ABC):
     EMPTY: Operand
     RUNTIME_TYPES = bool | int | float
     
-    @property
-    def is_temp(self) -> bool: return False
-
-    @property
-    def is_temp_version(self) -> bool: return False
-
-    @property
-    def is_const(self) -> bool: return False
-
-    @property
-    def is_label(self) -> bool: return False
-
     @abstractmethod
     def __str__(self) -> str: pass
 
@@ -40,10 +28,6 @@ class Temp(Operand):
     def name(self) -> str:
         return f't{self.number}'
     
-    @property
-    def is_temp(self) -> bool:
-        return True
-    
     def __str__(self) -> str:
         return self.name
     
@@ -59,10 +43,6 @@ class Const(Operand):
     def __init__(self, type: Type, value: Operand.RUNTIME_TYPES) -> None:
         self.type = type
         self.value = value
-
-    @property
-    def is_const(self) -> bool:
-        return True
 
     def __str__(self) -> str:
         if self.type.is_boolean:
@@ -81,10 +61,6 @@ class Label(Operand):
         super().__init__()
         Label.__count += 1
         self.number = Label.__count
-
-    @property
-    def is_label(self) -> bool:
-        return True
 
     @property
     def name(self) -> str:

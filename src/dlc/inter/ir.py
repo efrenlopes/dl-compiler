@@ -80,10 +80,9 @@ class IR(Visitor[Operand]):
                 self.bb_sequence.append(new_bb)
                 self.__bb_current = new_bb
             case Operator.GOTO | Operator.IF:
-                for arg in (instr.arg2, instr.result):
-                    if arg.is_label:
-                        label = cast(Label, arg)
-                        bb_target = self.label_bb_map[label]
+                for lbl in (instr.arg2, instr.result):
+                    if isinstance(lbl, Label):
+                        bb_target = self.label_bb_map[lbl]
                         self.__bb_current.add_successor(bb_target)
                 self.__bb_current.goto_instr = instr
             case Operator.PHI:

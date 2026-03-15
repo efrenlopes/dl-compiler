@@ -12,10 +12,6 @@ class TempVersion(Operand):
     def name(self) -> str:
         return f't{self.origin.number}_{self.version}'
     
-    @property
-    def is_temp_version(self) -> bool:
-        return True
-    
     def __str__(self) -> str:
         return self.name
     

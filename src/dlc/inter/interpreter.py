@@ -54,10 +54,9 @@ class Interpreter:
         mem: dict[Operand, Operand.RUNTIME_TYPES|None] = {}
 
         def get_value(arg: Operand) -> Operand.RUNTIME_TYPES | None:
-            if arg.is_temp or arg.is_temp_version:
+            if isinstance(arg, (Temp, TempVersion)):
                 return mem.get(arg)
-            elif arg.is_const:
-                arg = cast(Const, arg)
+            elif isinstance(arg, Const):
                 return arg.value
             return None
 
