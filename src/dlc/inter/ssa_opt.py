@@ -148,7 +148,7 @@ def phi_simplification(ssa: SSA) -> bool:
             #Remove dos PHIs os BBs que não existem mais
             assert(isinstance(instr, PhiInstr))
             for path_bb in list(instr.paths):
-                if path_bb not in ssa.ir.bb_sequence:
+                if path_bb not in bb.predecessors: #ssa.ir.bb_sequence:
                     changed = True
                     del instr.paths[path_bb]
             #PHIs com valor único são transformados em MOVEs
