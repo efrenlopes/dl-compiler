@@ -43,6 +43,20 @@ fim.##
 fim.##
 
 
+programa ciclo_phi inicio
+    inteiro a, b, c, tmp;
+    leia(a);
+    leia(b);
+    leia(c);
+    a = a * +2;
+    se (a == 10) inicio
+        tmp = b;
+        b = c;
+        c = tmp;
+    fim;
+    escreva(b);
+    escreva(c);
+fim.
 
 ##programa phi_se inicio
     inteiro a, b, c;
@@ -72,7 +86,7 @@ fim.##
 fim.##
 
 # Programa que determina se um número lido é primo ou não
-programa primo inicio
+##programa primo inicio
     inteiro i, num;
     booleano eh_primo;
     
@@ -101,4 +115,4 @@ programa primo inicio
         escreva(i);
     fim;
     
-fim.
+fim.##

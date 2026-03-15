@@ -1,5 +1,6 @@
 from dlc.codegen.interference_graph import InterferenceGraph
 from dlc.codegen.live_analysis import LivenessAnalysis
+from dlc.codegen.ssa_phi_elimination import SSAPhiEliminator
 from dlc.inter.basic_block import BasicBlock
 from dlc.inter.operand import Const, Label, Operand
 from dlc.inter.operator import Operator
@@ -114,46 +115,46 @@ class CodeGeneratorX64:
     
 
 
-    def __resolve_phis(self, current_bb: BasicBlock, target_label: Label) -> None:
-        target_bb = self.ssa.ir.bb_from_label(target_label)
-        copies: list[tuple[str, str, Type]] = []
+    # def __resolve_phis(self, current_bb: BasicBlock, target_label: Label) -> None:
+    #     target_bb = self.ssa.ir.bb_from_label(target_label)
+    #     copies: list[tuple[str, str, Type]] = []
 
-        # 1. Coletar cópias
-        for instr in target_bb.phi_instrs:
-            assert(isinstance(instr, PhiInstr))
-            phi_temp = instr.paths.get(current_bb)
-            if phi_temp:
-                dest = self.__resolve_arg(instr.result)
-                src = self.__resolve_arg(phi_temp)
-                if dest and src and dest != src:
-                    assert(isinstance(phi_temp, TempVersion))
-                    copies.append((dest, src, phi_temp.type))
+    #     # 1. Coletar cópias
+    #     for instr in target_bb.phi_instrs:
+    #         assert(isinstance(instr, PhiInstr))
+    #         phi_temp = instr.paths.get(current_bb)
+    #         if phi_temp:
+    #             dest = self.__resolve_arg(instr.result)
+    #             src = self.__resolve_arg(phi_temp)
+    #             if dest and src and dest != src:
+    #                 assert(isinstance(phi_temp, TempVersion))
+    #                 copies.append((dest, src, phi_temp.type))
 
-        if not copies:
-            return
+    #     if not copies:
+    #         return
 
-        self.code.append(f'\t# --- Resolvendo PHIs para {target_label} ---')
-        while copies:
-            progress = False
-            # 2. procurar cópia segura
-            for dest, src, v_type in copies:
+    #     self.code.append(f'\t# --- Resolvendo PHIs para {target_label} ---')
+    #     while copies:
+    #         progress = False
+    #         # 2. procurar cópia segura
+    #         for dest, src, v_type in copies:
 
-                if dest not in [s for _, s, _ in copies]:
-                    instr_mov = self.MOVE[v_type]
-                    self.code.append(f'\t{instr_mov} {dest}, {src}')
-                    copies.remove((dest, src, v_type))
-                    progress = True
-                    break
+    #             if dest not in [s for _, s, _ in copies]:
+    #                 instr_mov = self.MOVE[v_type]
+    #                 self.code.append(f'\t{instr_mov} {dest}, {src}')
+    #                 copies.remove((dest, src, v_type))
+    #                 progress = True
+    #                 break
 
-            if progress:
-                continue
+    #         if progress:
+    #             continue
 
-            # 3. existe ciclo → quebrar com temporário
-            dest, src, v_type = copies.pop(0)
-            instr_mov = self.MOVE[v_type]
-            tmp = self.PHI_REG[v_type]
-            self.code.append(f'\t{instr_mov} {tmp}, {src}')
-            copies.append((dest, tmp, v_type))
+    #         # 3. existe ciclo → quebrar com temporário
+    #         dest, src, v_type = copies.pop(0)
+    #         instr_mov = self.MOVE[v_type]
+    #         tmp = self.PHI_REG[v_type]
+    #         self.code.append(f'\t{instr_mov} {tmp}, {src}')
+    #         copies.append((dest, tmp, v_type))
 
 
 
@@ -161,6 +162,9 @@ class CodeGeneratorX64:
     def __init__(self, ssa: SSA) -> None:
         # Análise de vivacidade
         self.ssa = ssa
+
+        SSAPhiEliminator(self.ssa)
+
         int_liveness = LivenessAnalysis(ssa, types=(Type.INT, Type.BOOL))
         double_liveness = LivenessAnalysis(ssa, types=(Type.REAL,))
 
@@ -229,8 +233,6 @@ class CodeGeneratorX64:
             ''
         ])
 
-        current_bb = None
-
         # Gerar código para cada instrução
         for instr in ssa.ir:
             result = self.__resolve_arg(instr.result)
@@ -247,11 +249,9 @@ class CodeGeneratorX64:
                     continue
 
                 case Operator.LABEL:
-                    current_bb = ssa.ir.bb_from_label(instr.result)
                     self.code.append(f'\t{result}:')
                 
                 case Operator.GOTO:
-                    self.__resolve_phis(current_bb, instr.result)
                     self.code.append(f'\tjmp {result}')
 
 
@@ -260,24 +260,8 @@ class CodeGeneratorX64:
                 case Operator.IF:
                     self.code.append(f'\t{self.MOVE[type]} {self.ACC_REG[type]}, {arg1}')
                     self.code.append(f'\tcmp {self.ACC_REG[type]}, 0')
-
-                    label_true = self.__resolve_arg(instr.arg2)
-                    label_false = self.__resolve_arg(instr.result)
-
-                    internal_label_false = f".L_if_false_{len(self.code)}"
-
-                    # se cond == 0 → FALSE
-                    self.code.append(f'\tje {internal_label_false}')
-
-                    # TRUE
-                    self.__resolve_phis(current_bb, instr.arg2)
-                    self.code.append(f'\tjmp {label_true}')
-
-                    # FALSE
-                    self.code.append(f'{internal_label_false}:')
-                    self.__resolve_phis(current_bb, instr.result)
-                    self.code.append(f'\tjmp {label_false}')
-
+                    self.code.append(f'\tjne {arg2}')
+                    self.code.append(f'\tjmp {result}')
 
 
 

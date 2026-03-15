@@ -5,18 +5,12 @@ from dlc.inter.operator import Operator
 from dlc.inter.phi_instr import PhiInstr
 from dlc.inter.ssa import SSA
 from dlc.inter.ssa_operand import TempVersion
-from dlc.semantic.type import Type
 
 
 class SSAPhiEliminator:
 
     def __init__(self, ssa: SSA) -> None:
         self.ssa = ssa
-        self.phi_temp: dict[Type, TempVersion] = {
-            Type.BOOL: TempVersion(Temp(Type.BOOL), 1),
-            Type.INT: TempVersion(Temp(Type.INT), 1),
-            Type.REAL: TempVersion(Temp(Type.REAL), 1),
-        }
         self.__eliminate_phi()
         
 
@@ -69,7 +63,7 @@ class SSAPhiEliminator:
 
             # ciclo
             dest, src = copies.pop(0)
-            temp = self.phi_temp[src.type]
+            temp = TempVersion(Temp(src.type), 1)
             result.append((temp, src))
             copies.append((dest, temp))
 

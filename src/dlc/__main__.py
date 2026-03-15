@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 from dlc.codegen.codegen_x64 import CodeGeneratorX64
+from dlc.codegen.interference_graph import InterferenceGraph
+from dlc.codegen.live_analysis import LivenessAnalysis
 from dlc.codegen.ssa_phi_elimination import SSAPhiEliminator
 from dlc.inter.interpreter import Interpreter
 from dlc.inter.ir import IR
@@ -17,6 +19,7 @@ from dlc.inter.ssa_opt import optimize_ssa
 from dlc.lex.lexer import Lexer
 from dlc.lex.tag import Tag
 from dlc.semantic.checker import Checker
+from dlc.semantic.type import Type
 from dlc.syntax.parser import Parser
 
 if __name__ == '__main__':
@@ -81,6 +84,29 @@ if __name__ == '__main__':
     print('\n\n')
 
 
+    print('\n\nTAC Phi Eliminated')
+    elim = SSAPhiEliminator(ssa)
+    print(elim.ssa.ir)
+    print('\n\n**** Interpretação do TAC com Phis eliminados ****')
+    Interpreter(ssa.ir).interpret()
+
+
+    #Geração de código x64
+    cgx64 = CodeGeneratorX64(ssa)
+    #print(cgx64.reg_alloc)
+    #print(cgx64.mem_alloc)
+    file_name = 'out/prog.s'
+    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    file = open(file_name, 'w')
+    file.write('\n'.join(cgx64.code))
+    file.close()
+    print('\n\n**** Saída do programa alvo gerado ****')
+    subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
+    subprocess.run(['./out/prog'], check=True)
+
+
+    #Fim
+    print('\nCompilação concluída com sucesso!')
 
 
 
@@ -115,26 +141,20 @@ if __name__ == '__main__':
 
 
 
-    #Geração de código x64
-    cgx64 = CodeGeneratorX64(ssa)
-    #print(cgx64.reg_alloc)
-    #print(cgx64.mem_alloc)
-    file_name = 'out/prog.s'
-    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-    file = open(file_name, 'w')
-    file.write('\n'.join(cgx64.code))
-    file.close()
-    print('\n\n**** Saída do programa alvo gerado ****')
-    subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
-    subprocess.run(['./out/prog'], check=True)
+    # int_liveness = LivenessAnalysis(ssa, types=(Type.INT, Type.BOOL))
+    # double_liveness = LivenessAnalysis(ssa, types=(Type.REAL,))
+    # print('Vivacidade inteiro')
+    # int_liveness.print_liveness()
+    # print('Vivacidade real')
+    # double_liveness.print_liveness()
 
 
-    print('\n\nSSA Phi Eliminated')
-    elim = SSAPhiEliminator(ssa)
-    print(elim.ssa.ir)
+    # int_ig = InterferenceGraph(int_liveness, ['r1', 'r2'])
+    # int_ig.print_allocation_summary()
+    # print(int_ig.reg_alloc)
+    # print(int_ig.mem_alloc)
 
-
-
-
-    #Fim
-    print('\nCompilação concluída com sucesso!')
+    # double_ig =  InterferenceGraph(double_liveness, [])
+    # double_ig.print_allocation_summary()
+    # print(double_ig.reg_alloc)
+    # print(double_ig.mem_alloc)
