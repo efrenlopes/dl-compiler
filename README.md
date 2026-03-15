@@ -1,14 +1,67 @@
-## Para rodar o projeto, entre na pasta do projeto e rode
-```bash
-PYTHONPATH=src python -m dlc tests/inputs/prog.dl
+# ⚙️ DL Compiler (DLC)
+
+Compilador da **DL (Didactic Language)** desenvolvido para a disciplina de **Compiladores** da **Universidade Federal do Oeste do Pará (UFOPA)**.
+
+O projeto implementa um compilador completo para a linguagem DL, incluindo:
+
+- Análise léxica
+- Análise sintática
+- Análise semântica
+- Geração de **IR (Intermediate Representation)**
+- Transformação para **SSA (Static Single Assignment)**
+- Otimizações
+- Alocação de registradores
+- Geração de código **x86-64**
+
+
+
+
+## 📂 Estrutura do Projeto
+
+```
+src/dlc
+├── codegen     # Geração de código e alocação de registradores
+├── inter       # Representação intermediária (IR) e SSA
+├── lex         # Análise léxica
+├── semantic    # Análise semântica e sistema de tipos
+├── syntax      # Parser
+└── tree        # Estrutura da AST
 ```
 
+## 🛠️ Pré-requisitos
+
+- Python **3.12**
+- uv **0.10.9**
+
+
+
+
+
+## 🚀 Configuração e execução
+
+
+Após clonar o repositório, para criar automaticamente o ambiente virtual e instalar as dependências, execute
+
 ```bash
-pip install .
-python -m dlc tests/inputs/prog.dl
+uv sync
 ```
 
-## Gramática da linguagem DL
+Para executar o compilador utilizando como entrada um programa-fonte faça
+```bash
+uv run python -m dlc tests/inputs/prog.dl
+```
+
+
+
+## 💻 Configuração no VSCode
+
+O repositório já inclui arquivos de configuração para execução no **VSCode**, então basta
+1. Abrir o projeto no VSCode;
+2. Selecionar como *interpreter* `.venv/bin/python`
+
+
+
+## 📝 Gramática da linguagem DL
 ```bnf
 <PROGRAM>   ::= "programa" ID <STMT> "."
 <STMT>	    ::= <BLOCK> | <DECL> | <ASSIGN> | <WRITE> | <IF> | <WHILE>
