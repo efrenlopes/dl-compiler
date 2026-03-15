@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from dlc.codegen.codegen_x64 import CodeGeneratorX64
+from dlc.codegen.ssa_phi_elimination import SSAPhiEliminator
 from dlc.inter.interpreter import Interpreter
 from dlc.inter.ir import IR
 from dlc.inter.ssa import SSA
@@ -112,22 +113,23 @@ if __name__ == '__main__':
 
 
 
-
-
+    print('\n\nSSA Phi Eliminated')
+    elim = SSAPhiEliminator(ssa)
+    print(elim.ssa.ir)
 
 
     # #Geração de código x64
-    cgx64 = CodeGeneratorX64(ssa)
-    #print(cgx64.reg_alloc)
-    #print(cgx64.mem_alloc)
-    file_name = 'out/prog.s'
-    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-    file = open(file_name, 'w')
-    file.write('\n'.join(cgx64.code))
-    file.close()
-    print('\n\n**** Saída do programa alvo gerado ****')
-    subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
-    subprocess.run(['./out/prog'], check=True)
+    # cgx64 = CodeGeneratorX64(ssa)
+    # #print(cgx64.reg_alloc)
+    # #print(cgx64.mem_alloc)
+    # file_name = 'out/prog.s'
+    # Path(file_name).parent.mkdir(parents=True, exist_ok=True)
+    # file = open(file_name, 'w')
+    # file.write('\n'.join(cgx64.code))
+    # file.close()
+    # print('\n\n**** Saída do programa alvo gerado ****')
+    # subprocess.run(['gcc', file_name, '-o', 'out/prog', '-lm'], check=True)
+    # subprocess.run(['./out/prog'], check=True)
 
     #Fim
     print('\nCompilação concluída com sucesso!')
